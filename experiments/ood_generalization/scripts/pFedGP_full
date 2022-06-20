@@ -1,2 +1,2 @@
 # CIFAR-10
-python ../trainer.py --data-path ../../datafolder --save-path ../output/pFedGP
+python ../trainer.py --data-path ../../datafolder --save-path ../output/pFedGPfull_c10_ood

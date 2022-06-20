@@ -1,2 +1,2 @@
 # CIFAR-10
-python ../trainer_ip.py --data-path ../../datafolder --method pFedGP-data --save-path ../output/pFedGP-IP
+python ../trainer_ip.py --data-path ../../datafolder --method pFedGP-data --save-path ../output/pFedGPdata_c10_ood
