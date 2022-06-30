@@ -3,3 +3,5 @@ python ../trainer.py --data-name cifar10 --data-path ../../datafolder --inner-st
 
 # CIFAR-100
 python ../trainer.py --data-name cifar100 --data-path ../../datafolder --save-path ../output/pFedGPfull_c100_hete
+
+python ../trainer.py --data-name panda  --inner-steps 3 --save-path ../output/pFedGPfull_panda_hete

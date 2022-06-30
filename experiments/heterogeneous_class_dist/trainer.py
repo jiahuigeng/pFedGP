@@ -12,7 +12,7 @@ import copy
 
 from pFedGP.Learner import pFedGPFullLearner
 
-from experiments.backbone import CNNTarget
+from experiments.backbone import CNNTarget, get_feature_extractor
 from experiments.heterogeneous_class_dist.clients import BaseClients
 from utils import get_device, set_logger, set_seed, detach_to_numpy, save_experiment, \
                   print_calibration, calibration_search, offset_client_classes, calc_metrics
@@ -24,10 +24,11 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 #       Dataset Args        #
 #############################
 parser.add_argument(
-    "--data-name", type=str, default="cifar10", choices=['cifar10', 'cifar100', 'cinic10'],
+    "--data-name", type=str, default="cifar10", choices=['cifar10', 'cifar100', 'cinic10', 'panda', 'sicapv2'],
 )
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
 parser.add_argument("--num-clients", type=int, default=50, help="number of simulated clients")
+parser.add_argument("--ft", '-ft', default='cnn', choices=['cnn', 'resnet18', 'resnet50', 'efficientnetb3', 'efficientnetb5'])
 
 ##################################
 #       Optimization args        #
@@ -156,7 +157,13 @@ clients = BaseClients(args.data_name, args.data_path, args.num_clients,
                     batch_size=args.batch_size)
 
 # NN
-net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
+
+# net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
+if args.data_name in ['cifar10', 'cifar100', 'cinic10']:
+    net = get_feature_extractor(args.ft, input_size=32)
+elif args.data_name in ['panda', 'sicapv2']:
+    net = get_feature_extractor(args.ft, input_size=512)
+
 net = net.to(device)
 
 GPs = torch.nn.ModuleList([])
