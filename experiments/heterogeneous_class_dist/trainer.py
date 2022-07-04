@@ -198,6 +198,7 @@ def build_tree(clients, client_id):
     :return: List of GPs
     """
     for k, batch in enumerate(clients.train_loaders[client_id]):
+        print("build tree k:", k)
         batch = (t.to(device) for t in batch)
         train_data, clf_labels = batch
 
@@ -259,7 +260,6 @@ for step in step_iter:
         GPs[client_id].train()
 
         for i in range(args.inner_steps):
-
             # init optimizers
             optimizer.zero_grad()
 
