@@ -47,6 +47,24 @@ class CNNTargetlarge(nn.Module):
         return x
 
 
+class PResNet18(nn.Module):
+    def __init__(self, output_layer, embed_dim=84):
+        super().__init__()
+        self.output_layer = output_layer
+        self.pretrained = models.resnet18(pretrained=True)
+        self.children_list = []
+        for n, c in self.pretrained.named_children():
+            self.children_list.append(c)
+            if n == self.output_layer:
+                break
+
+        self.net = nn.Sequential(*self.children_list)
+        self.pretrained = None
+
+    def forward(self, x):
+        x = self.net(x)
+        return x
+
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#sphx-glr-beginner-transfer-learning-tutorial-py
 
 def get_feature_extractor(ft="cnn", input_size=32):
@@ -78,5 +96,8 @@ def get_feature_extractor(ft="cnn", input_size=32):
         model_ft = models.efficientnet_b3(pretrained=True)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, 84)
+        return model_ft
+
+    elif ft == "presnet18":
         return model_ft
 
