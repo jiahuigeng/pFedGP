@@ -201,8 +201,9 @@ def build_tree(clients, client_id):
         print("build tree k:", k)
         batch = (t.to(device) for t in batch)
         train_data, clf_labels = batch
-
+        print("before ")
         z = net(train_data)
+        print("after ")
         X = torch.cat((X, z), dim=0) if k > 0 else z
         Y = torch.cat((Y, clf_labels), dim=0) if k > 0 else clf_labels
 

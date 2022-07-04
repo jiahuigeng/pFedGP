@@ -47,27 +47,27 @@ class CNNTargetlarge(nn.Module):
         return x
 
 
-class PResNet18(nn.Module):
-    def __init__(self, output_layer='layer4', embed_dim=84):
-        super().__init__()
-        self.output_layer = output_layer
-        self.pretrained = models.resnet18(pretrained=True)
-        self.children_list = []
-        for n, c in self.pretrained.named_children():
-            self.children_list.append(c)
-            if n == self.output_layer:
-                break
-
-        self.net = nn.Sequential(*self.children_list)
-        self.pretrained = None
-
-
-    # def forward(self, x):
-    #     x = self.net(x)
-    #     x = x.view(x.shape[0], -1)
-    #     x =
-    #
-    #     return x
+# class PResNet18(nn.Module):
+#     def __init__(self, output_layer='layer4', embed_dim=84):
+#         super().__init__()
+#         self.output_layer = output_layer
+#         self.pretrained = models.resnet18(pretrained=True)
+#         self.children_list = []
+#         for n, c in self.pretrained.named_children():
+#             self.children_list.append(c)
+#             if n == self.output_layer:
+#                 break
+#
+#         self.net = nn.Sequential(*self.children_list)
+#         self.pretrained = None
+#         self.embed_dim = nn.Linear()
+#
+#     def forward(self, x):
+#         x = self.net(x)
+#         x = x.view(x.shape[0], -1)
+#         x =
+#
+#         return x
 
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#sphx-glr-beginner-transfer-learning-tutorial-py
 
