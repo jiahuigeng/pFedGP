@@ -78,7 +78,7 @@ def get_instance_classes(dataframe, dataframe_raw):
         # return fn.resize(fn.to_tensor(),size=[32, 32]),
 
 
-def get_datasets(data_name, dataroot, normalize=True, val_size=10000):
+def get_datasets(data_name, dataroot, normalize=True, val_size=10000, input_size=32):
     """
     get_datasets returns train/val/test data splits of CIFAR10/100 datasets
     :param data_name: name of datafolder, choose from [cifar10, cifar100]
@@ -132,7 +132,7 @@ def get_datasets(data_name, dataroot, normalize=True, val_size=10000):
         train_set, val_set, test_set = get_panda_dataset(mini=False)
 
     elif data_name == "minipanda":
-        train_set, val_set, test_set = get_panda_dataset(mini=True)
+        train_set, val_set, test_set = get_panda_dataset(mini=True, input_size=input_size)
 
     elif data_name == 'sicapv2':
         train_set, val_set, test_set = get_sicapv2_dataset()
@@ -245,7 +245,7 @@ def gen_data_split(dataset, num_users, class_partitions):
     return user_data_idx
 
 
-def gen_random_loaders(data_name, data_path, num_users, bz, classes_per_user, normalize=True):
+def gen_random_loaders(data_name, data_path, num_users, bz, classes_per_user, normalize=True, input_size=32):
     """
     generates train/val/test loaders of each client
     :param data_name: name of datafolder, choose from [cifar10, cifar100]
@@ -257,7 +257,7 @@ def gen_random_loaders(data_name, data_path, num_users, bz, classes_per_user, no
     """
     loader_params = {"batch_size": bz, "shuffle": False, "pin_memory": True, "num_workers": 4}
     dataloaders = []
-    datasets = get_datasets(data_name, data_path, normalize=normalize)
+    datasets = get_datasets(data_name, data_path, normalize=normalize, input_size=input_size)
 
     for i, d in enumerate(datasets):
         # ensure same partition for train/test/val
@@ -317,7 +317,7 @@ def get_sicapv2_dataset():
 
 
 class PandaDatast(data.Dataset):
-    def __init__(self, df, mini):
+    def __init__(self, df, mini, input_size):
         # self.csv = csv.reset_index(drop=True)
         self.data_df = df
         self.path = PANDA_PATH
@@ -327,7 +327,7 @@ class PandaDatast(data.Dataset):
         if mini==True:
             self.path = MINI_PANDA_PATH
             self.transform = transforms.Compose([
-                                                transforms.Resize(32),
+                                                transforms.Resize(input_size),
                                                 transforms.ToTensor(),
                                                 # transforms.Normalize(panda_stats["norm_mean"], panda_stats["norm_std"])
                                                  ])
@@ -352,7 +352,7 @@ class PandaDatast(data.Dataset):
 
         return image, target
 
-def get_panda_dataset(mini=False):
+def get_panda_dataset(mini=False, input_size=32):
     if mini:
         train_df_raw = pd.read_csv(osp.join(MINI_PANDA_PATH, "train_patches.csv"))
         val_df_raw = pd.read_csv(osp.join(MINI_PANDA_PATH, "val_patches.csv"))
@@ -363,7 +363,7 @@ def get_panda_dataset(mini=False):
         val_df_raw = pd.read_csv(osp.join(PANDA_PATH, "val_patches.csv"))
         test_df_raw = pd.read_csv(osp.join(PANDA_PATH, "test_patches.csv"))
 
-    train_set, val_set, test_set = PandaDatast(train_df_raw, mini), PandaDatast(val_df_raw,mini), PandaDatast(test_df_raw, mini)
+    train_set, val_set, test_set = PandaDatast(train_df_raw, mini, input_size), PandaDatast(val_df_raw,mini, input_size), PandaDatast(test_df_raw, mini, input_size)
     return train_set, val_set, test_set
 
 # def get_minipanda_dataset():

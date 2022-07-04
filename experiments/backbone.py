@@ -31,7 +31,8 @@ class CNNTargetlarge(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, n_kernels, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(n_kernels, 2 * n_kernels, 5)
-        self.fc1 = nn.Linear(2 * n_kernels * 5 * 5, 120)
+        self.hidden_size = int((input_size)/4 -3)
+        self.fc1 = nn.Linear(2 * n_kernels * self.hidden_size * self.hidden_size, 120)
         self.fc2 = nn.Linear(120, 84)
 
         self.embed_dim = nn.Linear(84, embedding_dim)

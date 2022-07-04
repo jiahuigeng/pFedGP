@@ -74,6 +74,7 @@ parser.add_argument("--exp-name", type=str, default='', help="suffix for exp nam
 parser.add_argument("--eval-every", type=int, default=25, help="eval every X selected steps")
 parser.add_argument("--save-path", type=str, default="./output/pFedGP", help="dir path for output file")
 parser.add_argument("--seed", type=int, default=42, help="seed value")
+parser.add_argument("--input-size", type=int, default=32, help="input size")
 
 args = parser.parse_args()
         
@@ -165,7 +166,7 @@ def eval_model(global_model, GPs, clients, split):
 ###############################
 clients = BaseClients(args.data_name, args.data_path, args.num_clients,
                     classes_per_client=classes_per_client,
-                    batch_size=args.batch_size)
+                    batch_size=args.batch_size, input_size=args.input_size)
 
 # NN
 

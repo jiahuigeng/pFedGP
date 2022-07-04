@@ -8,7 +8,8 @@ class BaseClients:
             data_path,
             n_clients,
             classes_per_client=2,
-            batch_size=128
+            batch_size=128,
+            input_size=32
     ):
 
         self.data_name = data_name
@@ -17,7 +18,7 @@ class BaseClients:
         self.classes_per_client = classes_per_client
 
         self.batch_size = batch_size
-
+        self.input_size = input_size
         self.train_loaders, self.val_loaders, self.test_loaders = None, None, None
         self._init_dataloaders()
 
@@ -27,7 +28,8 @@ class BaseClients:
             self.data_path,
             self.n_clients,
             self.batch_size,
-            self.classes_per_client
+            self.classes_per_client,
+            self.input_size
         )
 
     def __len__(self):
