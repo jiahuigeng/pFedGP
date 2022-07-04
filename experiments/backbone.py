@@ -53,7 +53,7 @@ def get_feature_extractor(ft="cnn", input_size=32):
         return CNNTarget(3, 16, 84)
 
     elif ft == 'cnn':
-        return CNNTargetlarge(2, 16, 84, input_size)
+        return CNNTargetlarge(3, 16, 84, input_size)
 
     elif ft == "resnet18":
         model_ft = models.resnet18(pretrained=True)
