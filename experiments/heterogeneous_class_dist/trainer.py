@@ -81,7 +81,13 @@ set_logger()
 set_seed(args.seed)
 
 device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
+# num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
+if args.data_name in ("cifar10", "cinic10"):
+    num_classes = 10
+elif args.data_name in ("panda"):
+    num_classes = 4
+elif args.data_name in ("cifar100"):
+    num_classes = 100
 classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
 
 exp_name = f'pFedGP-Full_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
@@ -162,7 +168,7 @@ clients = BaseClients(args.data_name, args.data_path, args.num_clients,
 if args.data_name in ['cifar10', 'cifar100', 'cinic10']:
     net = get_feature_extractor(args.ft, input_size=32)
 elif args.data_name in ['panda', 'sicapv2']:
-    net = get_feature_extractor(args.ft, input_size=512)
+    net = get_feature_extractor(args.ft, input_size=32)
 
 net = net.to(device)
 

@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 experiments/heterogeneous_class_dist/datafolder/
+localtest/
 # C extensions
 *.so
 

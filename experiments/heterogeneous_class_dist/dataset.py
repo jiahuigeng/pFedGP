@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch.utils.data
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as fn
 from torchvision.datasets import CIFAR10, CIFAR100
 import pandas as pd
 import os.path as osp
@@ -14,13 +15,23 @@ from PIL import Image
 SICAPV2_PATH = "/data/BasesDeDatos/SICAP/SICAPv2/"
 PANDA_PATH = "/data/BasesDeDatos/Panda/Panda_patches_resized/"
 
+MINI_PANDA_PATH = "/home/jiahui/data/minipanda"
+MINI_SICAPV2_PATH = "/home/jiahui/data/minisicap"
+
+panda_stats = {"norm_mean":  (0.4914, 0.4822, 0.4465), "norm_std": (0.2023, 0.1994, 0.2010)}
+
+
 def extract_df_info(dataframe_raw, dataset="panda"):
-    print('Preparing data split ')
+    print('Extract dataframe from csv ')
     # Notice: class 0 = NC, class 1 = G3, class 2 = G4, class 3 = G5
     dataframe = pd.DataFrame()
     if dataset == "panda":
         dataframe["image_path"] = PANDA_PATH + 'images/' + dataframe_raw["image_name"]
     elif dataset == "sicapv2":
+        dataframe["image_path"] = SICAPV2_PATH + 'images/' + dataframe_raw["image_name"]
+    if dataset == "minipanda":
+        dataframe["image_path"] = PANDA_PATH + 'images/' + dataframe_raw["image_name"]
+    elif dataset == "minisicapv2":
         dataframe["image_path"] = SICAPV2_PATH + 'images/' + dataframe_raw["image_name"]
 
     # dataframe["image_path"] = 'images/' + dataframe_raw["image_name"]
@@ -43,6 +54,13 @@ def get_instance_classes(dataframe, dataframe_raw):
 class DFDataset(torch.utils.data.Dataset):
     def __init__(self, dataframe):
         self.dataframe = dataframe
+
+        self.transform = transforms.Compose([transforms.Resize((32,32)),
+                                            # transforms.RandomHorizontalFlip(),
+                                            # transforms.RandomRotation(degrees=60),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize(panda_stats["norm_mean"], panda_stats["norm_std"])])
+
         self.targets = torch.tensor(list(map(int, dataframe["class"].tolist())))
 
     def __len__(self):
@@ -50,7 +68,12 @@ class DFDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         row = self.dataframe.iloc[index]
-        return torchvision.transforms.functional.to_tensor(Image.open(row["image_path"])), self.targets[index]
+        image = Image.open(row["image_path"])
+        target = self.targets[index]
+        if self.transform is not None:
+            image = self.transform(image)
+        return image, target
+        # return fn.resize(fn.to_tensor(),size=[32, 32]),
 
 
 def get_datasets(data_name, dataroot, normalize=True, val_size=10000):
@@ -105,6 +128,9 @@ def get_datasets(data_name, dataroot, normalize=True, val_size=10000):
 
     elif data_name == 'panda':
         train_set, val_set, test_set = get_panda_dataset()
+
+    elif data_name == "minipanda":
+        train_set, val_set, test_set = get_minipanda_dataset()
 
     elif data_name == 'sicapv2':
         train_set, val_set, test_set = get_sicapv2_dataset()
@@ -286,10 +312,10 @@ def get_sicapv2_dataset():
     return train_set, val_set, test_set
 
 def get_panda_dataset():
-    wsi_df = pd.read_csv(osp.join(PANDA_PATH, "wsi_labels.csv"))
-    wsi_df['Gleason_primary'] = wsi_df['gleason_score'].str.split('+').str[0].astype(int)
-    wsi_df['Gleason_secondary'] = wsi_df['gleason_score'].str.split('+').str[1].astype(int)
-    wsi_df.rename(columns={"image_id": "slide_id"}, inplace=True)
+    # wsi_df = pd.read_csv(osp.join(PANDA_PATH, "wsi_labels.csv"))
+    # wsi_df['Gleason_primary'] = wsi_df['gleason_score'].str.split('+').str[0].astype(int)
+    # wsi_df['Gleason_secondary'] = wsi_df['gleason_score'].str.split('+').str[1].astype(int)
+    # wsi_df.rename(columns={"image_id": "slide_id"}, inplace=True)
 
     train_df_raw = pd.read_csv(osp.join(PANDA_PATH, "train_patches.csv"))
     train_df = extract_df_info(train_df_raw)
@@ -297,6 +323,25 @@ def get_panda_dataset():
     val_df_raw = pd.read_csv(osp.join(PANDA_PATH, "val_patches.csv"))
     val_df = extract_df_info(val_df_raw)
     test_df_raw = pd.read_csv(osp.join(PANDA_PATH, "test_patches.csv"))
+    test_df = extract_df_info(test_df_raw)
+
+    train_set, val_set, test_set = DFDataset(train_df), DFDataset(val_df), DFDataset(test_df)
+
+    return train_set, val_set, test_set
+
+
+def get_minipanda_dataset():
+    # wsi_df = pd.read_csv(osp.join(PANDA_PATH, "wsi_labels.csv"))
+    # wsi_df['Gleason_primary'] = wsi_df['gleason_score'].str.split('+').str[0].astype(int)
+    # wsi_df['Gleason_secondary'] = wsi_df['gleason_score'].str.split('+').str[1].astype(int)
+    # wsi_df.rename(columns={"image_id": "slide_id"}, inplace=True)
+
+    train_df_raw = pd.read_csv(osp.join(MINI_PANDA_PATH, "mini_train_patches.csv"))
+    train_df = extract_df_info(train_df_raw)
+
+    val_df_raw = pd.read_csv(osp.join(MINI_PANDA_PATH, "mini_val_patches.csv"))
+    val_df = extract_df_info(val_df_raw)
+    test_df_raw = pd.read_csv(osp.join(MINI_PANDA_PATH, "mini_test_patches.csv"))
     test_df = extract_df_info(test_df_raw)
 
     train_set, val_set, test_set = DFDataset(train_df), DFDataset(val_df), DFDataset(test_df)
