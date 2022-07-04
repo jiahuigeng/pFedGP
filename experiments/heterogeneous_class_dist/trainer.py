@@ -85,7 +85,7 @@ device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
 if args.data_name in ("cifar10", "cinic10"):
     num_classes = 10
     classes_per_client = 2
-elif args.data_name in ("panda"):
+elif args.data_name in ("panda", "minipanda"):
     num_classes = 5
     classes_per_client = 2
 elif args.data_name in ("cifar100"):
