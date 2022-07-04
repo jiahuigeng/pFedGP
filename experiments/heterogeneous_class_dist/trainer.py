@@ -168,7 +168,7 @@ clients = BaseClients(args.data_name, args.data_path, args.num_clients,
 if args.data_name in ['cifar10', 'cifar100', 'cinic10', 'minipanda']:
     net = get_feature_extractor(args.ft, input_size=32)
 elif args.data_name in ['panda', 'sicapv2']:
-    net = get_feature_extractor(args.ft)
+    net = get_feature_extractor(args.ft, input_size=512)
 
 net = net.to(device)
 
