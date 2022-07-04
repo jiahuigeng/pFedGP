@@ -26,7 +26,7 @@ class CNNTarget(nn.Module):
 
 class CNNTargetlarge(nn.Module):
     def __init__(self, in_channels=3, n_kernels=16, embedding_dim=84, input_size=64):
-        super(CNNTarget, self).__init__()
+        super(CNNTargetlarge, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, n_kernels, 5)
         self.pool = nn.MaxPool2d(2, 2)
