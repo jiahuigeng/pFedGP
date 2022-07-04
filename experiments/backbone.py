@@ -25,7 +25,7 @@ class CNNTarget(nn.Module):
         return x
 
 class CNNTargetlarge(nn.Module):
-    def __init__(self, in_channels=3, n_kernels=16, embedding_dim=84):
+    def __init__(self, in_channels=3, n_kernels=16, embedding_dim=84, input_size=64):
         super(CNNTarget, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, n_kernels, 5)
@@ -51,6 +51,9 @@ class CNNTargetlarge(nn.Module):
 def get_feature_extractor(ft="cnn", input_size=32):
     if input_size == 32:
         return CNNTarget(3, 16, 84)
+
+    elif ft == 'cnn':
+        return CNNTargetlarge(2, 16, 84, input_size)
 
     elif ft == "resnet18":
         model_ft = models.resnet18(pretrained=True)
