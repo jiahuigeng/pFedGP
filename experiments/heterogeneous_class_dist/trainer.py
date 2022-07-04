@@ -84,11 +84,16 @@ device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
 # num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
 if args.data_name in ("cifar10", "cinic10"):
     num_classes = 10
+    classes_per_client = 2
 elif args.data_name in ("panda"):
-    num_classes = 4
+    num_classes = 5
+    classes_per_client = 2
 elif args.data_name in ("cifar100"):
     num_classes = 100
-classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
+    classes_per_client = 10
+
+# classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
+
 
 exp_name = f'pFedGP-Full_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
            f'lr_{args.lr}_num_steps_{args.num_steps}_inner_steps_{args.inner_steps}_' \
