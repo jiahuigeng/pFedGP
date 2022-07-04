@@ -3,7 +3,7 @@ import json
 import logging
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from time import time
+from time import time, ctime
 import numpy as np
 import torch
 import torch.utils.data
@@ -234,7 +234,7 @@ best_model = copy.deepcopy(net)
 best_labels_vs_preds_val = None
 best_val_loss = -1
 
-print("start training time:", time())
+print("start training time:", ctime(time()))
 for step in step_iter:
 
     # print tree stats every 100 epochs
@@ -322,7 +322,7 @@ for step in step_iter:
         results['best_step'].append(best_step)
         results['best_val_acc'].append(best_acc)
 
-print("end training time:", time())
+print("end training time:", ctime(time()))
 net = best_model
 
 test_results, labels_vs_preds_test = eval_model(net, GPs, clients, split="test")
