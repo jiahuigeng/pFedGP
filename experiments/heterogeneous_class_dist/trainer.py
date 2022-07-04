@@ -88,13 +88,14 @@ if args.data_name in ("cifar10", "cinic10"):
     classes_per_client = 2
 elif args.data_name in ("panda", "minipanda"):
     num_classes = 5
-    classes_per_client = 2
+    classes_per_client = 5
 elif args.data_name in ("cifar100"):
     num_classes = 100
     classes_per_client = 10
 
 # classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
-
+if args.classes_per_client:
+    classes_per_client = args.classes_per_client
 
 exp_name = f'pFedGP-Full_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
            f'lr_{args.lr}_num_steps_{args.num_steps}_inner_steps_{args.inner_steps}_' \
