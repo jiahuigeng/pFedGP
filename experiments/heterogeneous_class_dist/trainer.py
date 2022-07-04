@@ -37,7 +37,7 @@ parser.add_argument("--num-steps", type=int, default=1000)
 parser.add_argument("--optimizer", type=str, default='sgd', choices=['adam', 'sgd'], help="learning rate")
 parser.add_argument("--batch-size", type=int, default=512)
 parser.add_argument("--inner-steps", type=int, default=1, help="number of inner steps")
-parser.add_argument("--num-client-agg", type=int, default=5, help="number of kernels")
+parser.add_argument("--num-client-agg", type=int, default=1, help="number of kernels")
 
 parser.add_argument("--lr", type=float, default=5e-2, help="learning rate")
 parser.add_argument("--wd", type=float, default=1e-3, help="weight decay")
@@ -134,6 +134,7 @@ def eval_model(global_model, GPs, clients, split):
         GPs[client_id].eval()
 
         for batch_count, batch in enumerate(curr_data):
+            print(batch_count)
             img, label = tuple(t.to(device) for t in batch)
             Y_test = torch.tensor([label_map[l.item()] for l in label], dtype=label.dtype,
                                          device=label.device)
