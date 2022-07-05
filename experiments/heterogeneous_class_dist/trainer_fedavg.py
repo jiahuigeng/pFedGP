@@ -263,8 +263,8 @@ for step in step_iter:
                 f"Step: {step + 1}, client: {client_id}, Loss: {loss.item()}"
             )
 
-        for n, p in curr_global_net.state_dict():
-            params[n] += p.data
+        for n in curr_global_net.state_dict().keys():
+            params[n] += curr_global_net.state_dict()[n].data
 
     # train_avg_loss /= num_samples
 
