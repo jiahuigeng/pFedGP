@@ -232,8 +232,8 @@ for step in step_iter:
 
     # initialize global model params
     params = OrderedDict()
-    for n, p in net.state_dict():
-        params[n] = torch.zeros_like(p.data)
+    for n in net.state_dict().keys():
+        params[n] = torch.zeros_like(net.state_dict()[n].data)
 
     # iterate over each client
     train_avg_loss = 0
