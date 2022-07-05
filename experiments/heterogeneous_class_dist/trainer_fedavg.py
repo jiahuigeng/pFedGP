@@ -132,8 +132,7 @@ def eval_model(global_model, Feds, clients, split):
             curr_data = clients.train_loaders[client_id]
 
         Feds[client_id].eval()
-        # GPs[client_id], label_map, X_train, Y_train = build_tree(clients, client_id)
-        # GPs[client_id].eval()
+
 
         for batch_count, batch in enumerate(curr_data):
             # print(batch_count)
@@ -143,19 +142,7 @@ def eval_model(global_model, Feds, clients, split):
             running_loss += criteria(preds, label)
             running_correct += pred.argmax(1).eq(label).sum().item()
 
-            # Y_test = torch.tensor([label_map[l.item()] for l in label], dtype=label.dtype,
-            #                       device=label.device)
-            #
-            # X_test = global_model(img)
-            # # loss, pred = GPs[client_id].forward_eval(X_train, Y_train, X_test, Y_test, is_first_iter)
-            #
-            # running_loss += loss.item()
-            # running_correct += pred.argmax(1).eq(Y_test).sum().item()
-            # running_samples += len(Y_test)
-            #
-            # is_first_iter = False
-            # targets.append(Y_test)
-            # preds.append(pred)
+
 
         # erase tree (no need to save it)
         # GPs[client_id].tree = None
@@ -222,8 +209,32 @@ best_labels_vs_preds_val = None
 best_val_loss = -1
 
 print("start training time:", ctime(time()))
-for step in step_iter:
+# for step in range(4):
+#     for client_id in range(args.num_clients):
+#         Feds[client_id].train()
+#         train_loss = 0.0
+#         num_data = 0
+#         correct = 0
+#         optimizer = get_optimizer(Feds[client_id])
+#         for batch_idx, (img, label) in enumerate(clients.train_loaders[client_id]):
+#             num_data += label.size(0)
+#             # TODO: 'cuda' must be defined in the given 'params'
+#
+#             # data, target = data.cuda(), target.cuda()
+#             # data, target = Variable(data), Variable(target)
+#             optimizer.zero_grad()
+#             score = Feds[client_id](img)
+#             loss = criteria(score, label)
+#             loss_data = loss.data.item()
+#             train_loss += loss_data
+#             if np.isnan(loss_data):
+#                 raise ValueError('loss is nan while training')
+#             loss.backward()
+#             optimizer.step()
+#             pred = score.data.max(1)[1]
+#             correct += pred.eq(label.view(-1)).sum().item()
 
+for step in step_iter:
     # print tree stats every 100 epochs
     to_print = True if step % 100 == 0 else False
 
@@ -244,72 +255,75 @@ for step in step_iter:
         curr_global_net.train()
         optimizer = get_optimizer(curr_global_net)
 
-
-
-
-
         for k, batch in enumerate(clients.train_loaders[client_id]):
+            num_samples += batch.size(0)
             batch = (t.to(device) for t in batch)
             img, label = batch
             optimizer.zero_grad()
             loss = criteria(Feds[client_id](img), label)
+
+            train_avg_loss += loss
+
+
             # propagate loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
             optimizer.step()
 
-            step_iter.set_description(
-                f"Step: {step + 1}, client: {client_id}, Loss: {loss.item()}"
-            )
+            if k % 100 == 99:
+                logging.info("current batch %d, loss: %d" % (k, train_avg_loss/num_samples))
+                train_avg_loss = 0
 
-        for n in curr_global_net.state_dict().keys():
-            params[n] += curr_global_net.state_dict()[n].data
+        # eval_model(curr_global_net, Feds, clients, split="val")
 
-    # train_avg_loss /= num_samples
-
-    # average parameters
-    for n, p in params.items():
-        params[n] = p / args.num_client_agg
-
-
-    # update new parameters
-    net.load_state_dict(params)
-
-    if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-        val_results, labels_vs_preds_val = eval_model(net, Feds, clients, split="val")
-        val_avg_loss, val_avg_acc = calc_metrics(val_results)
-        logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
-
-        if best_acc < val_avg_acc:
-            best_val_loss = val_avg_loss
-            best_acc = val_avg_acc
-            best_step = step
-            best_labels_vs_preds_val = labels_vs_preds_val
-            best_model = copy.deepcopy(net)
-
-        results['val_avg_loss'].append(val_avg_loss)
-        results['val_avg_acc'].append(val_avg_acc)
-        results['best_step'].append(best_step)
-        results['best_val_acc'].append(best_acc)
-
-print("end training time:", ctime(time()))
-net = best_model
-
-test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
-avg_test_loss, avg_test_acc = calc_metrics(test_results)
-
-logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
-logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
-
-# best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
-# logging.info(f"best calibration temp: {best_temp}")
-# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
-# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
-
-results['best_step'].append(best_step)
-results['best_val_acc'].append(best_acc)
-results['test_loss'].append(avg_test_loss)
-results['test_acc'].append(avg_test_acc)
-
-with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
-    json.dump(results, file, indent=4)
+#         for n in curr_global_net.state_dict().keys():
+#             params[n] += curr_global_net.state_dict()[n].data
+#
+#     # train_avg_loss /= num_samples
+#
+#     # average parameters
+#     for n, p in params.items():
+#         params[n] = p / args.num_client_agg
+#
+#
+#     # update new parameters
+#     net.load_state_dict(params)
+#
+#     if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
+#         val_results, labels_vs_preds_val = eval_model(net, Feds, clients, split="val")
+#         val_avg_loss, val_avg_acc = calc_metrics(val_results)
+#         logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+#
+#         if best_acc < val_avg_acc:
+#             best_val_loss = val_avg_loss
+#             best_acc = val_avg_acc
+#             best_step = step
+#             best_labels_vs_preds_val = labels_vs_preds_val
+#             best_model = copy.deepcopy(net)
+#
+#         results['val_avg_loss'].append(val_avg_loss)
+#         results['val_avg_acc'].append(val_avg_acc)
+#         results['best_step'].append(best_step)
+#         results['best_val_acc'].append(best_acc)
+#
+# print("end training time:", ctime(time()))
+# net = best_model
+#
+# test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
+# avg_test_loss, avg_test_acc = calc_metrics(test_results)
+#
+# logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
+# logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
+#
+# # best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
+# # logging.info(f"best calibration temp: {best_temp}")
+# # print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
+# # print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
+#
+# results['best_step'].append(best_step)
+# results['best_val_acc'].append(best_acc)
+# results['test_loss'].append(avg_test_loss)
+# results['test_acc'].append(avg_test_acc)
+#
+# with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
+#     json.dump(results, file, indent=4)
