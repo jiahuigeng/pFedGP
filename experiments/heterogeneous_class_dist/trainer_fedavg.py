@@ -271,61 +271,61 @@ for step in step_iter:
             torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
             optimizer.step()
 
-            if k % 100 == 99:
-                logging.info(f"current batch {k}, loss: {train_avg_loss/num_samples:.4f}")
-                train_avg_loss = 0
-                num_samples = 0
+            # if k % 100 == 99:
+            #     logging.info(f"current batch {k}, loss: {train_avg_loss/num_samples:.4f}")
+            #     train_avg_loss = 0
+            #     num_samples = 0
 
-        # eval_model(curr_global_net, Feds, clients, split="val")
+        eval_model(curr_global_net, Feds, clients, split="val")
 
-#         for n in curr_global_net.state_dict().keys():
-#             params[n] += curr_global_net.state_dict()[n].data
+        for n in curr_global_net.state_dict().keys():
+            params[n] += curr_global_net.state_dict()[n].data
 #
-#     # train_avg_loss /= num_samples
+    train_avg_loss /= num_samples
 #
 #     # average parameters
-#     for n, p in params.items():
-#         params[n] = p / args.num_client_agg
+    for n, p in params.items():
+        params[n] = p / args.num_client_agg
 #
 #
 #     # update new parameters
-#     net.load_state_dict(params)
+    net.load_state_dict(params)
 #
-#     if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-#         val_results, labels_vs_preds_val = eval_model(net, Feds, clients, split="val")
-#         val_avg_loss, val_avg_acc = calc_metrics(val_results)
-#         logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
-#
-#         if best_acc < val_avg_acc:
-#             best_val_loss = val_avg_loss
-#             best_acc = val_avg_acc
-#             best_step = step
-#             best_labels_vs_preds_val = labels_vs_preds_val
-#             best_model = copy.deepcopy(net)
-#
-#         results['val_avg_loss'].append(val_avg_loss)
-#         results['val_avg_acc'].append(val_avg_acc)
-#         results['best_step'].append(best_step)
-#         results['best_val_acc'].append(best_acc)
-#
-# print("end training time:", ctime(time()))
-# net = best_model
-#
-# test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
-# avg_test_loss, avg_test_acc = calc_metrics(test_results)
-#
-# logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
-# logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
-#
-# # best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
-# # logging.info(f"best calibration temp: {best_temp}")
-# # print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
-# # print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
-#
-# results['best_step'].append(best_step)
-# results['best_val_acc'].append(best_acc)
-# results['test_loss'].append(avg_test_loss)
-# results['test_acc'].append(avg_test_acc)
-#
-# with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
-#     json.dump(results, file, indent=4)
+    if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
+        val_results, labels_vs_preds_val = eval_model(net, Feds, clients, split="val")
+        val_avg_loss, val_avg_acc = calc_metrics(val_results)
+        logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+
+        if best_acc < val_avg_acc:
+            best_val_loss = val_avg_loss
+            best_acc = val_avg_acc
+            best_step = step
+            best_labels_vs_preds_val = labels_vs_preds_val
+            best_model = copy.deepcopy(net)
+
+        results['val_avg_loss'].append(val_avg_loss)
+        results['val_avg_acc'].append(val_avg_acc)
+        results['best_step'].append(best_step)
+        results['best_val_acc'].append(best_acc)
+
+print("end training time:", ctime(time()))
+net = best_model
+
+test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
+avg_test_loss, avg_test_acc = calc_metrics(test_results)
+
+logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
+logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
+
+# best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
+# logging.info(f"best calibration temp: {best_temp}")
+# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
+# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
+
+results['best_step'].append(best_step)
+results['best_val_acc'].append(best_acc)
+results['test_loss'].append(avg_test_loss)
+results['test_acc'].append(avg_test_acc)
+
+with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
+    json.dump(results, file, indent=4)
