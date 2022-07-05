@@ -10,13 +10,12 @@ import torch.utils.data
 from tqdm import trange
 import copy
 
-# from pFedGP.Learner import pFedGPFullLearner
 
-# from experiments.backbone import CNNTarget, get_feature_extractor
 from experiments.backbone1 import ResNet
 from experiments.heterogeneous_class_dist.clients import BaseClients
 from utils import get_device, set_logger, set_seed, detach_to_numpy, save_experiment, \
     print_calibration, calibration_search, offset_client_classes, calc_metrics
+
 from experiments.calibrate import ECELoss
 
 parser = argparse.ArgumentParser(description="Personalized Federated Learning")
@@ -114,11 +113,8 @@ args.out_dir = (Path(args.save_path) / exp_name).as_posix()
 out_dir = save_experiment(args, None, return_out_dir=True, save_results=False)
 logging.info(out_dir)
 
-# ECE_module = ECELoss()
-
-
 @torch.no_grad()
-def eval_model(global_model, GPs, clients, split):
+def eval_model(global_model, Feds, clients, split):
     results = defaultdict(lambda: defaultdict(list))
     targets = []
     preds = []
@@ -140,21 +136,26 @@ def eval_model(global_model, GPs, clients, split):
         # GPs[client_id].eval()
 
         for batch_count, batch in enumerate(curr_data):
-            print(batch_count)
+            # print(batch_count)
             img, label = tuple(t.to(device) for t in batch)
-            Y_test = torch.tensor([label_map[l.item()] for l in label], dtype=label.dtype,
-                                  device=label.device)
 
-            X_test = global_model(img)
-            # loss, pred = GPs[client_id].forward_eval(X_train, Y_train, X_test, Y_test, is_first_iter)
+            pred = Feds[client_id](img)
+            running_loss += criteria(preds, label)
+            running_correct += pred.argmax(1).eq(label).sum().item()
 
-            running_loss += loss.item()
-            running_correct += pred.argmax(1).eq(Y_test).sum().item()
-            running_samples += len(Y_test)
-
-            is_first_iter = False
-            targets.append(Y_test)
-            preds.append(pred)
+            # Y_test = torch.tensor([label_map[l.item()] for l in label], dtype=label.dtype,
+            #                       device=label.device)
+            #
+            # X_test = global_model(img)
+            # # loss, pred = GPs[client_id].forward_eval(X_train, Y_train, X_test, Y_test, is_first_iter)
+            #
+            # running_loss += loss.item()
+            # running_correct += pred.argmax(1).eq(Y_test).sum().item()
+            # running_samples += len(Y_test)
+            #
+            # is_first_iter = False
+            # targets.append(Y_test)
+            # preds.append(pred)
 
         # erase tree (no need to save it)
         # GPs[client_id].tree = None
@@ -203,32 +204,6 @@ def get_optimizer(network):
         if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
 
 
-@torch.no_grad()
-def build_tree(clients, client_id):
-    """
-    Build GP tree per client
-    :return: List of GPs
-    """
-    for k, batch in enumerate(clients.train_loaders[client_id]):
-        # print("build tree k:", k)
-        batch = (t.to(device) for t in batch)
-        train_data, clf_labels = batch
-        # print("before ")
-        z = net(train_data)
-        # print("after ")
-        X = torch.cat((X, z), dim=0) if k > 0 else z
-        Y = torch.cat((Y, clf_labels), dim=0) if k > 0 else clf_labels
-
-    # build label map
-    client_labels, client_indices = torch.sort(torch.unique(Y))
-    label_map = {client_labels[i].item(): client_indices[i].item() for i in range(client_labels.shape[0])}
-    offset_labels = torch.tensor([label_map[l.item()] for l in Y], dtype=Y.dtype,
-                                 device=Y.device)
-
-    # GPs[client_id].build_base_tree(X, offset_labels)  # build tree
-    # return GPs[client_id], label_map, X, offset_labels
-
-
 criteria = torch.nn.CrossEntropyLoss()
 results = defaultdict(list)
 
@@ -269,45 +244,28 @@ for step in step_iter:
         curr_global_net.train()
         optimizer = get_optimizer(curr_global_net)
 
-        # build tree at each step
-        # GPs[client_id], label_map, _, __ = build_tree(clients, client_id)
-        # GPs[client_id].train()
 
-        for i in range(args.inner_steps):
-            # init optimizers
-            optimizer.zero_grad()
+        optimizer.zero_grad()
 
-            # With GP take all data
-            for k, batch in enumerate(clients.train_loaders[client_id]):
-                batch = (t.to(device) for t in batch)
-                img, label = batch
+        # With GP take all data
+        for k, batch in enumerate(clients.train_loaders[client_id]):
+            batch = (t.to(device) for t in batch)
+            img, label = batch
 
-                z = curr_global_net(img)
-                X = torch.cat((X, z), dim=0) if k > 0 else z
-                Y = torch.cat((Y, label), dim=0) if k > 0 else label
-
-            offset_labels = torch.tensor([label_map[l.item()] for l in Y], dtype=Y.dtype,
-                                         device=Y.device)
-
-            loss = GPs[client_id](X, offset_labels, to_print=to_print)
-            loss *= args.loss_scaler
+            loss = criteria(Feds[client_id], label)
 
             # propagate loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
             optimizer.step()
 
-            train_avg_loss += loss.item() * offset_labels.shape[0]
-            num_samples += offset_labels.shape[0]
-
             step_iter.set_description(
-                f"Step: {step + 1}, client: {client_id}, Inner Step: {i}, Loss: {loss.item()}"
+                f"Step: {step + 1}, client: {client_id}, Loss: {loss.item()}"
             )
 
         for n, p in curr_global_net.named_parameters():
             params[n] += p.data
-        # erase tree (no need to save it)
-        GPs[client_id].tree = None
+
 
     train_avg_loss /= num_samples
 
@@ -318,7 +276,7 @@ for step in step_iter:
     net.load_state_dict(params)
 
     if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-        val_results, labels_vs_preds_val = eval_model(net, GPs, clients, split="val")
+        val_results, labels_vs_preds_val = eval_model(net, Feds, clients, split="val")
         val_avg_loss, val_avg_acc = calc_metrics(val_results)
         logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
 
@@ -337,16 +295,16 @@ for step in step_iter:
 print("end training time:", ctime(time()))
 net = best_model
 
-test_results, labels_vs_preds_test = eval_model(net, GPs, clients, split="test")
+test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
 avg_test_loss, avg_test_acc = calc_metrics(test_results)
 
 logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
 logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
 
-best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
-logging.info(f"best calibration temp: {best_temp}")
-print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
-print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
+# best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
+# logging.info(f"best calibration temp: {best_temp}")
+# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
+# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
 
 results['best_step'].append(best_step)
 results['best_val_acc'].append(best_acc)
