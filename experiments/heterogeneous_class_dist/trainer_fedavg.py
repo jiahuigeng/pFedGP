@@ -232,7 +232,7 @@ for step in step_iter:
 
     # initialize global model params
     params = OrderedDict()
-    for n, p in net.named_parameters():
+    for n, p in net.state_dict():
         params[n] = torch.zeros_like(p.data)
 
     # iterate over each client
@@ -263,15 +263,16 @@ for step in step_iter:
                 f"Step: {step + 1}, client: {client_id}, Loss: {loss.item()}"
             )
 
-        for n, p in curr_global_net.named_parameters():
+        for n, p in curr_global_net.state_dict():
             params[n] += p.data
-
 
     # train_avg_loss /= num_samples
 
     # average parameters
     for n, p in params.items():
         params[n] = p / args.num_client_agg
+
+
     # update new parameters
     net.load_state_dict(params)
 
