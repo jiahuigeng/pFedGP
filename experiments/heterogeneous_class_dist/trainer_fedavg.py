@@ -142,6 +142,9 @@ def eval_model(global_model, Feds, clients, split):
             running_loss += criteria(pred, label)
             running_correct += pred.argmax(1).eq(label).sum().item()
 
+            targets.append(label)
+            preds.append(pred)
+
 
 
         # erase tree (no need to save it)
