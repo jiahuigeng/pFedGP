@@ -274,6 +274,7 @@ for step in step_iter:
             if k % 100 == 99:
                 logging.info(f"current batch {k}, loss: {train_avg_loss/num_samples:.4f}")
                 train_avg_loss = 0
+                num_samples = 0
 
         # eval_model(curr_global_net, Feds, clients, split="val")
 
