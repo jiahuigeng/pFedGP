@@ -281,9 +281,10 @@ for step in step_iter:
             optimizer.step()
 
             if k % 3 == 2:
-                val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
-                val_avg_loss, val_avg_acc = calc_metrics(val_results)
-                logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+                logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")
+                # val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
+                # val_avg_loss, val_avg_acc = calc_metrics(val_results)
+                # logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
 
 
         eval_model(None, Feds, clients, split="val")
@@ -291,7 +292,7 @@ for step in step_iter:
         for n in Feds[client_id].state_dict().keys():
             params[n] += Feds[client_id].state_dict()[n].data
 #
-    train_avg_loss /= num_samples
+
 #
 #     # average parameters
     for n, p in params.items():
