@@ -245,15 +245,14 @@ for step in step_iter:
         optimizer = get_optimizer(curr_global_net)
 
 
-        optimizer.zero_grad()
 
-        # With GP take all data
+
+
         for k, batch in enumerate(clients.train_loaders[client_id]):
             batch = (t.to(device) for t in batch)
             img, label = batch
-
+            optimizer.zero_grad()
             loss = criteria(Feds[client_id](img), label)
-
             # propagate loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
