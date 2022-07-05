@@ -274,7 +274,7 @@ for step in step_iter:
             torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
             optimizer.step()
 
-            if k % 100 == 99:
+            if k % 3 == 2:
                 val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
                 val_avg_loss, val_avg_acc = calc_metrics(val_results)
                 logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
