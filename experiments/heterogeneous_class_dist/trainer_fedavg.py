@@ -139,7 +139,7 @@ def eval_model(global_model, Feds, clients, split):
             img, label = tuple(t.to(device) for t in batch)
 
             pred = Feds[client_id](img)
-            running_loss += criteria(pred, label)
+            running_loss += criteria(pred, label).item()
             running_correct += pred.argmax(1).eq(label).sum().item()
 
             targets.append(label)
@@ -274,10 +274,11 @@ for step in step_iter:
             torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
             optimizer.step()
 
-            # if k % 100 == 99:
-            #     logging.info(f"current batch {k}, loss: {train_avg_loss/num_samples:.4f}")
-            #     train_avg_loss = 0
-            #     num_samples = 0
+            if k % 100 == 99:
+                val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
+                val_avg_loss, val_avg_acc = calc_metrics(val_results)
+                logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+
 
         eval_model(curr_global_net, Feds, clients, split="val")
 
