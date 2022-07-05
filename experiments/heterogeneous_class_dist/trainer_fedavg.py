@@ -252,7 +252,7 @@ for step in step_iter:
             batch = (t.to(device) for t in batch)
             img, label = batch
 
-            loss = criteria(Feds[client_id], label)
+            loss = criteria(Feds[client_id](img), label)
 
             # propagate loss
             loss.backward()
