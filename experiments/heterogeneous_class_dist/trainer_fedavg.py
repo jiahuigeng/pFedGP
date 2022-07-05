@@ -273,7 +273,7 @@ for step in step_iter:
 
             # propagate loss
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
+            # torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
             optimizer.step()
 
             if k % 3 == 2:
