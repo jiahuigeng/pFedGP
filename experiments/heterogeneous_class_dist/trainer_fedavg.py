@@ -267,7 +267,7 @@ for step in step_iter:
             params[n] += p.data
 
 
-    train_avg_loss /= num_samples
+    # train_avg_loss /= num_samples
 
     # average parameters
     for n, p in params.items():
