@@ -134,7 +134,7 @@ def eval_model(global_model, GPs, clients, split):
         GPs[client_id].eval()
 
         for batch_count, batch in enumerate(curr_data):
-            print(batch_count)
+            # print(batch_count)
             img, label = tuple(t.to(device) for t in batch)
             Y_test = torch.tensor([label_map[l.item()] for l in label], dtype=label.dtype,
                                          device=label.device)

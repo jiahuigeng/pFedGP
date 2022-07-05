@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 #       Dataset Args        #
 #############################
 parser.add_argument(
-    "--data-name", type=str, default="cifar10", choices=['cifar10', 'cifar100', 'cinic10', 'panda', 'sicapv2'],
+    "--data-name", type=str, default="cifar10", choices=['cifar10', 'cifar100', 'cinic10', 'panda', 'sicapv2', "minipanda"],
 )
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
 parser.add_argument("--num-clients", type=int, default=50, help="number of simulated clients")
@@ -88,8 +88,22 @@ set_logger()
 set_seed(args.seed)
 
 device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
-classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
+# num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
+# classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
+
+if args.data_name in ("cifar10", "cinic10"):
+    num_classes = 10
+    classes_per_client = 2
+elif args.data_name in ("panda", "minipanda"):
+    num_classes = 5
+    classes_per_client = 5
+elif args.data_name in ("cifar100"):
+    num_classes = 100
+    classes_per_client = 10
+
+if args.classes_per_client:
+    classes_per_client = args.classes_per_client
+
 
 exp_name = f'pFedGP-IP_{args.data_name}_method_{args.method}_num_clients_{args.num_clients}_seed_{args.seed}_' \
            f'num_steps_{args.num_steps}_inner_steps_{args.inner_steps}_num_inducing_{args.num_inducing_points}' \
@@ -168,11 +182,11 @@ clients = BaseClients(args.data_name, args.data_path, args.num_clients,
                     batch_size=args.batch_size)
 
 # NN
-# net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
-if args.data_name in ['cifar10', 'cifar100', 'cinic10']:
+if args.data_name in ['cifar10', 'cifar100', 'cinic10', 'minipanda']:
     net = get_feature_extractor(args.ft, input_size=32)
 elif args.data_name in ['panda', 'sicapv2']:
     net = get_feature_extractor(args.ft, input_size=512)
+
 net = net.to(device)
 
 # GPs
