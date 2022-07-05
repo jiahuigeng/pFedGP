@@ -3,7 +3,7 @@ import json
 import logging
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-
+from time import time, ctime
 import numpy as np
 import torch
 import torch.utils.data
@@ -81,6 +81,8 @@ parser.add_argument("--exp-name", type=str, default='', help="suffix for exp nam
 parser.add_argument("--eval-every", type=int, default=25, help="eval every X selected steps")
 parser.add_argument("--save-path", type=str, default="./output/pFedGP-IP", help="dir path for output file")  # change
 parser.add_argument("--seed", type=int, default=42, help="seed value")
+parser.add_argument("--input-size", type=int, default=32, help="input size")
+parser.add_argument("--classes-per-client", type=int, help="classes per client")
 
 args = parser.parse_args()
 
@@ -254,6 +256,7 @@ best_X_bar = copy.deepcopy(X_bar)
 best_labels_vs_preds_val = None
 best_val_loss = -1
 
+print("start training time:", ctime(time()))
 for step in step_iter:
 
     # print tree stats every 100 epochs
@@ -355,6 +358,7 @@ for step in step_iter:
         results['best_step'].append(best_step)
         results['best_val_acc'].append(best_acc)
 
+print("end training time:", ctime(time()))
 net = best_model
 X_bar = best_X_bar
 
