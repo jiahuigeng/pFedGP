@@ -141,9 +141,11 @@ def eval_model(global_model, Feds, clients, split):
             pred = Feds[client_id](img)
             running_loss += criteria(pred, label).item()
             running_correct += pred.argmax(1).eq(label).sum().item()
+            running_samples += len(label)
 
             targets.append(label)
             preds.append(pred)
+
 
 
 
