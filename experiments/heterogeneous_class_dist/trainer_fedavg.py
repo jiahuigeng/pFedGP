@@ -139,7 +139,7 @@ def eval_model(global_model, Feds, clients, split):
             img, label = tuple(t.to(device) for t in batch)
 
             pred = Feds[client_id](img)
-            running_loss += criteria(preds, label)
+            running_loss += criteria(pred, label)
             running_correct += pred.argmax(1).eq(label).sum().item()
 
 
