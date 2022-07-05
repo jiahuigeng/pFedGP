@@ -281,10 +281,10 @@ for step in step_iter:
 
             # propagate loss
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(curr_global_net.parameters(), 50)
+            torch.nn.utils.clip_grad_norm_(Feds[client_id].parameters(), 50)
             optimizer.step()
 
-            if k % 3 == 2:
+            if k % 2 == 1:
                 logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")
                 train_avg_loss =0
                 num_samples = 0
