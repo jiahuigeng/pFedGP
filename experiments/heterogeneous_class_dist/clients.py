@@ -29,7 +29,7 @@ class BaseClients:
             self.n_clients,
             self.batch_size,
             self.classes_per_client,
-            self.input_size
+            input_size=self.input_size
         )
 
     def __len__(self):
