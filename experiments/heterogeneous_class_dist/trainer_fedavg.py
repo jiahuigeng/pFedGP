@@ -186,9 +186,9 @@ clients = BaseClients(args.data_name, args.data_path, args.num_clients,
 # GPs = torch.nn.ModuleList([])
 Feds = torch.nn.ModuleList([])
 for client_id in range(args.num_clients):
-    net = ResNet(num_channel=3, num_class=num_classes, pretrained=True, model=args.model)
-    net = net.to(device)
-    Feds.append(net)
+    cur_net = ResNet(num_channel=3, num_class=num_classes, pretrained=True, model=args.model)
+    cur_net = cur_net.to(device)
+    Feds.append(cur_net)
     # GPs.append(pFedGPFullLearner(args, classes_per_client))  # GP instances
 
 
@@ -210,7 +210,8 @@ test_best_based_on_step, test_best_min_based_on_step = -1, -1
 test_best_max_based_on_step, test_best_std_based_on_step = -1, -1
 step_iter = trange(args.num_steps)
 
-best_model = copy.deepcopy(net)
+global_net = ResNet(num_channel=3, num_class=num_classes, pretrained=True, model=args.model)
+best_model = copy.deepcopy(global_net)
 best_labels_vs_preds_val = None
 best_val_loss = -1
 
@@ -240,6 +241,11 @@ print("start training time:", ctime(time()))
 #             pred = score.data.max(1)[1]
 #             correct += pred.eq(label.view(-1)).sum().item()
 
+
+params = OrderedDict()
+for n in global_net.state_dict().keys():
+    params[n] = torch.zeros_like(global_net.state_dict()[n].data)
+
 for step in step_iter:
     # print tree stats every 100 epochs
     to_print = True if step % 100 == 0 else False
@@ -248,9 +254,7 @@ for step in step_iter:
     client_ids = np.random.choice(range(args.num_clients), size=args.num_client_agg, replace=False)
 
     # initialize global model params
-    params = OrderedDict()
-    for n in net.state_dict().keys():
-        params[n] = torch.zeros_like(net.state_dict()[n].data)
+
 
     # iterate over each client
     train_avg_loss = 0
@@ -302,10 +306,10 @@ for step in step_iter:
 #
 #
 #     # update new parameters
-    net.load_state_dict(params)
+    global_net.load_state_dict(params)
 #
     if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-        val_results, labels_vs_preds_val = eval_model(net, Feds, clients, split="val")
+        val_results, labels_vs_preds_val = eval_model(global_net, Feds, clients, split="val")
         val_avg_loss, val_avg_acc = calc_metrics(val_results)
         logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
 
@@ -314,7 +318,7 @@ for step in step_iter:
             best_acc = val_avg_acc
             best_step = step
             best_labels_vs_preds_val = labels_vs_preds_val
-            best_model = copy.deepcopy(net)
+            best_model = copy.deepcopy(global_net)
 
         results['val_avg_loss'].append(val_avg_loss)
         results['val_avg_acc'].append(val_avg_acc)
