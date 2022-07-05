@@ -119,7 +119,8 @@ def eval_model(global_model, Feds, clients, split):
     targets = []
     preds = []
 
-    global_model.eval()
+    if global_model:
+        global_model.eval()
 
     for client_id in range(args.num_clients):
         is_first_iter = True
@@ -256,9 +257,12 @@ for step in step_iter:
     num_samples = 0
 
     for j, client_id in enumerate(client_ids):
-        curr_global_net = copy.deepcopy(net)
-        curr_global_net.train()
-        optimizer = get_optimizer(curr_global_net)
+        # curr_global_net = copy.deepcopy(net)
+        # curr_global_net.train()
+        # optimizer = get_optimizer(curr_global_net)
+
+        Feds[client_id].train()
+        optimizer = get_optimizer(Feds[client_id])
 
         for k, batch in enumerate(clients.train_loaders[client_id]):
 
@@ -282,10 +286,10 @@ for step in step_iter:
                 logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
 
 
-        eval_model(curr_global_net, Feds, clients, split="val")
+        eval_model(None, Feds, clients, split="val")
 
-        for n in curr_global_net.state_dict().keys():
-            params[n] += curr_global_net.state_dict()[n].data
+        for n in Feds[client_id].state_dict().keys():
+            params[n] += Feds[client_id].state_dict()[n].data
 #
     train_avg_loss /= num_samples
 #
