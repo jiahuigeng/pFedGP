@@ -256,9 +256,10 @@ for step in step_iter:
         optimizer = get_optimizer(curr_global_net)
 
         for k, batch in enumerate(clients.train_loaders[client_id]):
-            num_samples += batch.size(0)
+
             batch = (t.to(device) for t in batch)
             img, label = batch
+            num_samples += label.size(0)
             optimizer.zero_grad()
             loss = criteria(Feds[client_id](img), label)
 
