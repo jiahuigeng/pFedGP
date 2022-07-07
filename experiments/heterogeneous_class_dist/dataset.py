@@ -317,7 +317,7 @@ class PandaDatast(data.Dataset):
 class RadBoudDataset(data.Dataset):
     def __init__(self, df, mini, input_size=512):
         self.data_df = df
-        self.path = RADBOUN_CSV_PATH
+        self.path = PANDA_PATH
         self.tranform = transforms.Compose([
             transforms.ToTensor(),
         ])
