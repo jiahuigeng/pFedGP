@@ -360,7 +360,7 @@ class KarolinskaDataset(data.Dataset):
                 transforms.ToTensor(),
             ])
 
-        onehot_targets = self.data_df[['NC', 'G3', 'G4', 'G5']].values
+        onehot_targets = self.data_df[['NC', "unlabeled"]].values
         self.targets = np.argmax(onehot_targets, axis=1)
 
     def __len__(self):
