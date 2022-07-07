@@ -20,6 +20,11 @@ PANDA_PATH = "/data/BasesDeDatos/Panda/Panda_patches_resized/"
 MINI_PANDA_PATH = "/home/jiahui/data/minipanda"
 MINI_SICAPV2_PATH = "/home/jiahui/data/minisicap"
 
+RADBOUN_CSV_PATH = "/data/BasesDeDatos/Panda/Panda_patches_resized/radb_only"
+KAROLIN_CSV_PATH = "/home/jiahui/data/karolinska"
+
+
+
 panda_stats = {"norm_mean":  (0.4914, 0.4822, 0.4465), "norm_std": (0.2023, 0.1994, 0.2010)}
 
 
@@ -31,7 +36,7 @@ def get_instance_classes(dataframe, dataframe_raw):
 
 
 
-def get_datasets(data_name, dataroot, normalize=True, val_size=10000, input_size=32):
+def get_datasets(data_name, dataroot, normalize=True, val_size=10000, input_size=32, mini=False):
     """
     get_datasets returns train/val/test data splits of CIFAR10/100 datasets
     :param data_name: name of datafolder, choose from [cifar10, cifar100]
@@ -85,10 +90,17 @@ def get_datasets(data_name, dataroot, normalize=True, val_size=10000, input_size
         train_set, val_set, test_set = get_panda_dataset(mini=False)
 
     elif data_name == "minipanda":
-        train_set, val_set, test_set = get_panda_dataset(mini=True, input_size=input_size)
+        train_set, val_set, test_set = get_panda_dataset(mini=mini, input_size=input_size)
 
     elif data_name == 'sicapv2':
-        train_set, val_set, test_set = get_sicapv2_dataset()
+        train_set, val_set, test_set = get_sicapv2_dataset(mini=mini, input_size=input_size)
+
+    elif data_name == "radboud":
+        train_set, val_set, test_set = get_radboud_dataset(mini=mini, input_size=input_size)
+
+    elif data_name == "karolinska":
+        train_set, val_set, test_set = get_karolinska_dataset(mini=mini, input_size=input_size)
+
     else:
         raise ValueError("choose data_name from ['cifar10', 'cifar100', 'cinic10]")
 
@@ -252,8 +264,18 @@ def get_cinic_dataset(pkl_path):
 
 
 
-def get_sicapv2_dataset():
-    return None, None, None
+def get_sicapv2_dataset(mini, input_size=512):
+    train_df_raw = pd.read_excel(osp.join(SICAPV2_PATH, "partition/Validation/Val1", "Train.xlsx"))
+    val_df_raw = pd.read_excel(osp.join(SICAPV2_PATH, "partition/Validation/Val1", "Test.xlsx"))
+    test_df_raw = pd.read_excel(osp.join(SICAPV2_PATH, "partition/Test", "Test.xlsx"))
+
+    train_set = Sicapv2Datast(train_df_raw, mini, input_size)
+    val_set = Sicapv2Datast(val_df_raw, mini, input_size)
+    test_set = Sicapv2Datast(test_df_raw, mini, input_size)
+
+    return train_set, val_set, test_set
+
+
 
 
 class PandaDatast(data.Dataset):
@@ -273,7 +295,7 @@ class PandaDatast(data.Dataset):
                                                  ])
         self.data = []
         # onehot_targets = self.data_df[['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC', 'UNK']].values
-        onehot_targets = self.data_df[['NC','G3','G4','G5','unlabeled']].values
+        onehot_targets = self.data_df[['NC','G3','G4','G5']].values
         self.targets = np.argmax(onehot_targets, axis=1)
 
     def __len__(self):
@@ -292,6 +314,106 @@ class PandaDatast(data.Dataset):
 
         return image, target
 
+class RadBoudDataset(data.Dataset):
+    def __init__(self, df, mini, input_size=512):
+        self.data_df = df
+        self.path = RADBOUN_CSV_PATH
+        self.tranform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+        if mini == True:
+            self.data_df = self.data_df[:1000]
+            self.transform = transforms.Compose([
+                transforms.Resize(input_size),
+                transforms.ToTensor(),
+            ])
+
+        onehot_targets = self.data_df[['NC','G3','G4','G5']].values
+        self.targets = np.argmax(onehot_targets, axis=1)
+
+    def __len__(self):
+        return self.data_df.shape[0]
+
+    def __getitem__(self, index):
+        if torch.is_tensor(index):
+            index = index.tolist()
+        row = self.data_df.iloc[index]
+
+        image = Image.open(osp.join(self.path, "images", row["image_name"]))
+        if self.transform is not None:
+            image = self.transform(image)
+
+        target = self.targets[index]
+        return image, target
+
+class KarolinskaDataset(data.Dataset):
+    def __init__(self, df, mini, input_size=512):
+        self.data_df = df
+        self.path = PANDA_PATH
+        self.tranform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+        if mini == True:
+            self.data_df = self.data_df[:1000]
+            self.transform = transforms.Compose([
+                transforms.Resize(input_size),
+                transforms.ToTensor(),
+            ])
+
+        onehot_targets = self.data_df[['NC', 'G3', 'G4', 'G5']].values
+        self.targets = np.argmax(onehot_targets, axis=1)
+
+    def __len__(self):
+        return self.data_df.shape[0]
+
+    def __getitem__(self, index):
+        if torch.is_tensor(index):
+            index = index.tolist()
+        row = self.data_df.iloc[index]
+
+        image = Image.open(osp.join(self.path, "images", row["image_name"]))
+        if self.transform is not None:
+            image = self.transform(image)
+
+        target = self.targets[index]
+        return image, target
+
+class Sicapv2Datast(data.Dataset):
+    def __init__(self, df, mini, input_size=512):
+        # self.csv = csv.reset_index(drop=True)
+        self.data_df = df
+        self.path = PANDA_PATH
+        self.transform = transforms.Compose([
+                                            transforms.ToTensor(),
+                                             ])
+        if mini==True:
+            self.path = SICAPV2_PATH
+            self.transform = transforms.Compose([
+                                                transforms.Resize(input_size),
+                                                transforms.ToTensor(),
+                                                # transforms.Normalize(panda_stats["norm_mean"], panda_stats["norm_std"])
+                                                 ])
+        self.data = []
+        # onehot_targets = self.data_df[['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC', 'UNK']].values
+        onehot_targets = self.data_df[['NC','G3','G4','G5']].values
+        self.targets = np.argmax(onehot_targets, axis=1)
+
+    def __len__(self):
+        return self.data_df.shape[0]
+
+    def __getitem__(self, index):
+        if torch.is_tensor(index):
+            index = index.tolist()
+        row = self.data_df.iloc[index]
+
+        image = Image.open(osp.join(self.path, "images", row["image_name"]))
+        if self.transform is not None:
+            image = self.transform(image)
+
+        target = self.targets[index]
+        return image, target
+
+
 def get_panda_dataset(mini=False, input_size=32):
     if mini:
         train_df_raw = pd.read_csv(osp.join(MINI_PANDA_PATH, "train_patches.csv"))
@@ -306,4 +428,22 @@ def get_panda_dataset(mini=False, input_size=32):
     train_set, val_set, test_set = PandaDatast(train_df_raw, mini, input_size), PandaDatast(val_df_raw,mini, input_size), PandaDatast(test_df_raw, mini, input_size)
     return train_set, val_set, test_set
 
+def get_radboud_dataset(mini, input_size=512):
+    train_df_raw = pd.read_csv(osp.join(RADBOUN_CSV_PATH, "train_patches.csv"))
+    val_df_raw = pd.read_csv(osp.join(RADBOUN_CSV_PATH, "val_patches.csv"))
+    test_df_raw = pd.read_csv(osp.join(RADBOUN_CSV_PATH, "test_patches.csv"))
 
+    train_set = RadBoudDataset(train_df_raw, mini, input_size)
+    val_set = RadBoudDataset(val_df_raw, mini, input_size)
+    test_set = RadBoudDataset(test_df_raw, mini, input_size)
+    return train_set, val_set, test_set
+
+def get_karolinska_dataset(mini, input_size=512):
+    train_df_raw = pd.read_csv(osp.join(KAROLIN_CSV_PATH, "train.csv"))
+    val_df_raw = pd.read_csv(osp.join(KAROLIN_CSV_PATH, "val.csv"))
+    test_df_raw = pd.read_csv(osp.join(KAROLIN_CSV_PATH, "test.csv"))
+    train_set = KarolinskaDataset(train_df_raw, mini, input_size)
+    val_set = KarolinskaDataset(val_df_raw, mini, input_size)
+    test_set = KarolinskaDataset(test_df_raw, mini, input_size)
+
+    return train_set, val_set, test_set
