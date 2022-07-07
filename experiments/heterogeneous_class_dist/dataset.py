@@ -382,7 +382,7 @@ class Sicapv2Datast(data.Dataset):
     def __init__(self, df, mini, input_size=512):
         # self.csv = csv.reset_index(drop=True)
         self.data_df = df
-        self.path = PANDA_PATH
+        self.path = SICAPV2_PATH
         self.transform = transforms.Compose([
                                             transforms.ToTensor(),
                                              ])

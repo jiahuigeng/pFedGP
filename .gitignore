@@ -95,7 +95,7 @@ ipython_config.py
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
-experiments/heterogeneous_class_dist/scripts/try_net.py
+try_net.py
 # Celery stuff
 celerybeat-schedule
 celerybeat.pid

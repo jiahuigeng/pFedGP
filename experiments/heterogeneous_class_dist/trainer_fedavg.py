@@ -148,8 +148,6 @@ def eval_model(global_model, Feds, clients, split):
             preds.append(pred)
 
 
-
-
         # erase tree (no need to save it)
         # GPs[client_id].tree = None
 
