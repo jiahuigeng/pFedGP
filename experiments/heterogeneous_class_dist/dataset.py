@@ -318,7 +318,7 @@ class RadBoudDataset(data.Dataset):
     def __init__(self, df, mini, input_size=512):
         self.data_df = df
         self.path = PANDA_PATH
-        self.tranform = transforms.Compose([
+        self.transform = transforms.Compose([
             transforms.ToTensor(),
         ])
         if mini == True:
@@ -350,7 +350,7 @@ class KarolinskaDataset(data.Dataset):
     def __init__(self, df, mini, input_size=512):
         self.data_df = df
         self.path = PANDA_PATH
-        self.tranform = transforms.Compose([
+        self.transform = transforms.Compose([
             transforms.ToTensor(),
         ])
         if mini == True:
