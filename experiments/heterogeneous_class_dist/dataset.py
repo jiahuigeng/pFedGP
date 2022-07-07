@@ -269,9 +269,9 @@ def get_sicapv2_dataset(mini, input_size=512):
     val_df_raw = pd.read_excel(osp.join(SICAPV2_PATH, "partition/Validation/Val1", "Test.xlsx"))
     test_df_raw = pd.read_excel(osp.join(SICAPV2_PATH, "partition/Test", "Test.xlsx"))
 
-    train_set = Sicapv2Datast(train_df_raw, mini, input_size)
-    val_set = Sicapv2Datast(val_df_raw, mini, input_size)
-    test_set = Sicapv2Datast(test_df_raw, mini, input_size)
+    train_set = Sicapv2Dataset(train_df_raw, mini, input_size)
+    val_set = Sicapv2Dataset(val_df_raw, mini, input_size)
+    test_set = Sicapv2Dataset(test_df_raw, mini, input_size)
 
     return train_set, val_set, test_set
 
@@ -378,7 +378,7 @@ class KarolinskaDataset(data.Dataset):
         target = self.targets[index]
         return image, target
 
-class Sicapv2Datast(data.Dataset):
+class Sicapv2Dataset(data.Dataset):
     def __init__(self, df, mini, input_size=512):
         # self.csv = csv.reset_index(drop=True)
         self.data_df = df
