@@ -447,3 +447,18 @@ def get_karolinska_dataset(mini, input_size=512):
     test_set = KarolinskaDataset(test_df_raw, mini, input_size)
 
     return train_set, val_set, test_set
+
+
+if __name__ == "__main__":
+    from torch.utils.data.dataloader import DataLoader
+
+    for ds in ['sicapv2', 'radboud', 'karolinska']:
+        train_set, val_set, test_set = get_datasets(ds, dataroot="")
+        train_loader, val_loader, test_loader = DataLoader(train_set, batch_size=32), DataLoader(val_set,
+                                                                                                 batch_size=32), DataLoader(
+            test_set, batch_size=32)
+        train_sample, val_sample, test_sample = next(iter(train_loader)), next(iter(val_loader)), next(
+            iter(test_loader))
+        print("train sample:", train_sample.shape)
+        print("val sample:", val_sample.shape)
+        print("test sample:", test_sample.shape)
