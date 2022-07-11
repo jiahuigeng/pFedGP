@@ -1,0 +1,1 @@
+python ../trainer.py --inner-steps 3 --mini True --ft resnet18 --save-path ../output/pFedGPfull_realworld   --batch-size 4 --input-size 512
