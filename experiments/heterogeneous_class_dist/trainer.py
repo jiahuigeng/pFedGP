@@ -241,8 +241,8 @@ for step in step_iter:
     to_print = True if step % 100 == 0 else False
 
     # select several clients
-    client_ids = np.random.choice(range(args.num_clients), size=args.num_client_agg, replace=False)
-
+    # client_ids = np.random.choice(range(args.num_clients), size=args.num_client_agg, replace=False)
+    client_ids = list(range(args.num_clients))
     # initialize global model params
     params = OrderedDict()
     for n, p in net.named_parameters():
