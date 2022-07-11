@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 
 parser.add_argument('-n', '--data-name', default=['sicapv2', 'radboud', 'karolinska'], nargs='+')
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
-parser.add_argument("--num-clients", type=int, default=100, help="number of simulated clients")
+parser.add_argument("--num-clients", type=int, default=3, help="number of simulated clients")
 parser.add_argument("--alpha", type=float, default=0.1, help="alpha param for diri distribution")
 parser.add_argument("--alpha-gen", type=lambda s: [float(item.strip()) for item in s.split(',')],
                     default='0.1,0.25,0.5,0.75,1.0',
@@ -245,9 +245,9 @@ for step in step_iter:
     to_print = True if step % 100 == 0 else False
 
     # select several clients
-    client_ids = np.random.choice(range(args.num_novel_clients, args.num_clients), size=args.num_client_agg,
-                                  replace=False)
-
+    # client_ids = np.random.choice(range(args.num_novel_clients, args.num_clients), size=args.num_client_agg,
+    #                               replace=False)
+    client_ids = list(range(args.data_name))
     # initialize global model params
     params = OrderedDict()
     for n, p in net.named_parameters():
@@ -312,7 +312,8 @@ for step in step_iter:
     net.load_state_dict(params)
 
     if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-        val_results = eval_model(net, range(args.num_novel_clients, args.num_clients), GPs, clients, split="val")
+        # val_results = eval_model(net, range(args.num_novel_clients, args.num_clients), GPs, clients, split="val")
+        val_results = eval_model(net, range(args.num_clients), GPs, clients, split="val")
         val_avg_loss, val_avg_acc = calc_metrics(val_results)
         logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
 
@@ -328,7 +329,8 @@ for step in step_iter:
         results['best_val_acc'].append(best_acc)
 
 net = best_model
-test_results = eval_model(net, range(args.num_novel_clients, args.num_clients), GPs, clients, split="test")
+# test_results = eval_model(net, range(args.num_novel_clients, args.num_clients), GPs, clients, split="test")
+test_results = eval_model(net, range(args.num_clients), GPs, clients, split="test")
 avg_test_loss, avg_test_acc = calc_metrics(test_results)
 
 logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
