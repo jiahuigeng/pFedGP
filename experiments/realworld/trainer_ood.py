@@ -147,23 +147,23 @@ def eval_model(global_model, client_ids, GPs, clients, split):
 ###############################
 # init net and GP #
 ###############################
-def client_counts(num_clients, split='train'):
-    client_num_classes = {}
-    for client_id in range(num_clients):
-        if split == 'test':
-            curr_data = clients.test_loaders[client_id]
-        elif split == 'val':
-            curr_data = clients.val_loaders[client_id]
-        else:
-            curr_data = clients.train_loaders[client_id]
-
-        for i, batch in enumerate(curr_data):
-            img, label = tuple(t.to(device) for t in batch)
-            all_labels = label if i == 0 else torch.cat((all_labels, label))
-
-        client_labels, client_counts = torch.unique(all_labels, return_counts=True)
-        client_num_classes[client_id] = client_labels.shape[0]
-    return client_num_classes
+# def client_counts(num_clients, split='train'):
+#     client_num_classes = {}
+#     for client_id in range(num_clients):
+#         if split == 'test':
+#             curr_data = clients.test_loaders[client_id]
+#         elif split == 'val':
+#             curr_data = clients.val_loaders[client_id]
+#         else:
+#             curr_data = clients.train_loaders[client_id]
+#
+#         for i, batch in enumerate(curr_data):
+#             img, label = tuple(t.to(device) for t in batch)
+#             all_labels = label if i == 0 else torch.cat((all_labels, label))
+#
+#         client_labels, client_counts = torch.unique(all_labels, return_counts=True)
+#         client_num_classes[client_id] = client_labels.shape[0]
+#     return client_num_classes
 
 
 # clients = GenBaseClients(args.data_name, args.data_path, args.num_clients,
@@ -172,7 +172,7 @@ def client_counts(num_clients, split='train'):
 #                          batch_size=args.batch_size)
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
-client_num_classes = client_counts(args.num_clients)
+client_num_classes = [4,4,2]
 
 # NN
 net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
