@@ -86,7 +86,16 @@ set_logger()
 set_seed(args.seed)
 
 device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-num_classes = 10 if args.data_name == 'cifar10' else 100
+# num_classes = 10 if args.data_name == 'cifar10' else 100
+
+num_classes = {
+    'cifar10': 10,
+    'cifar100':100,
+    'cinic': 10,
+    'sicapv2': 4,
+    'radboud': 4,
+    'karolinska': 2
+}
 
 exp_name = f'pFedGP-OOD-Gen_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
            f'lr_{args.lr}_num_steps_{args.num_steps}_inner_steps_{args.inner_steps}_' \
@@ -172,7 +181,8 @@ def eval_model(global_model, client_ids, GPs, clients, split):
 #                          batch_size=args.batch_size)
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
-client_num_classes = [4,4,2]
+
+client_num_classes = [num_classes[name] for name in args.data_name]
 
 # NN
 net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
