@@ -99,30 +99,30 @@ class ResNet(nn.Module):
 
 # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#sphx-glr-beginner-transfer-learning-tutorial-py
 
-def get_feature_extractor(ft="cnn", input_size=32, embedding_dim=84):
+def get_feature_extractor(ft="cnn", input_size=32, embedding_dim=84, pretrained=False):
     if input_size == 32:
         return CNNTarget(3, 16, 84)
 
     elif ft == "resnet18":
-        model_ft = models.resnet18(pretrained=True)
+        model_ft = models.resnet18(pretrained=pretrained)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, embedding_dim)
         return model_ft
 
     elif ft == "resnet50":
-        model_ft = models.resnet50(pretrained=True)
+        model_ft = models.resnet50(pretrained=pretrained)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, embedding_dim)
         return model_ft
 
     elif ft == "efficientnetb3":
-        model_ft = models.efficientnet_b3(pretrained=True)
+        model_ft = models.efficientnet_b3(pretrained=pretrained)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, embedding_dim)
         return model_ft
 
     elif ft == "efficientnetb5":
-        model_ft = models.efficientnet_b3(pretrained=True)
+        model_ft = models.efficientnet_b3(pretrained=pretrained)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, embedding_dim)
         return model_ft

@@ -211,7 +211,7 @@ clients = RealClients(args.data_name, args.data_path, args.num_clients,
 # Feds = torch.nn.ModuleList([])
 Feds = []
 for data in args.data_name:
-    local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data])
+    local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
     local_model = local_model.to(device)
     Feds.append(local_model)
 # for data in args.data_name:
