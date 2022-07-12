@@ -240,10 +240,11 @@ test_best_based_on_step, test_best_min_based_on_step = -1, -1
 test_best_max_based_on_step, test_best_std_based_on_step = -1, -1
 step_iter = trange(args.num_steps)
 
-global_net = ResNet(num_channel=3, num_class=num_classes, pretrained=True, model=args.model)
-best_model = copy.deepcopy(global_net)
-best_labels_vs_preds_val = None
-best_val_loss = -1
+if len(args.data_name) == 1:
+    global_net = ResNet(num_channel=3, num_class=num_classes[args.data_name[0]], pretrained=True, model=args.model)
+    best_model = copy.deepcopy(global_net)
+    best_labels_vs_preds_val = None
+    best_val_loss = -1
 
 print("start training time:", ctime(time()))
 # for step in range(4):
