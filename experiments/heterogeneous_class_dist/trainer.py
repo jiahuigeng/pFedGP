@@ -199,6 +199,8 @@ def build_tree(clients, client_id):
     """
     for k, batch in enumerate(clients.train_loaders[client_id]):
         # print("build tree k:", k)
+        if k > 100:
+            break
         batch = (t.to(device) for t in batch)
         train_data, clf_labels = batch
         # print("before ")
