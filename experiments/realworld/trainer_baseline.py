@@ -23,10 +23,11 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 #############################
 #       Dataset Args        #
 #############################
-parser.add_argument(
-    "--data-name", type=str, default="cifar10",
-    choices=['cifar10', 'cifar100', 'cinic10', 'panda', 'sicapv2', "minipanda"],
-)
+# parser.add_argument(
+#     "--data-name", type=str, default="cifar10",
+#     choices=['cifar10', 'cifar100', 'cinic10', 'panda', 'sicapv2', "minipanda"],
+# )
+parser.add_argument('-n', '--data-name', default=['sicapv2', 'radboud', 'karolinska'], nargs='+')
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
 # parser.add_argument("--num-clients", type=int, default=50, help="number of simulated clients")
 parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "resnet50", 'efficientnetb3', 'efficientnetb5'])
