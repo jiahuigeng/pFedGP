@@ -78,6 +78,7 @@ parser.add_argument("--eval-every", type=int, default=25, help="eval every X sel
 parser.add_argument("--save-path", type=str, default="./output/pFedGP", help="dir path for output file")
 parser.add_argument("--seed", type=int, default=42, help="seed value")
 parser.add_argument("--input-size", type=int, default=32, help="input size")
+parser.add_argument("--mini", type=bool, default=True, help="use mini size")
 parser.add_argument("--classes-per-client", type=int, help="classes per client")
 
 args = parser.parse_args()
