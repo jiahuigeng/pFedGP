@@ -133,14 +133,14 @@ clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
 
 
-Feds = []
-for data in args.data_name:
-    local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
-    local_model = local_model.to(device)
-    Feds.append(local_model)
+# Feds = []
+# for data in args.data_name:
+#     local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
+#     local_model = local_model.to(device)
+#     Feds.append(local_model)
 
 
-optimizers = [get_optimizer(Feds[client_id]) for client_id in range(args.num_clients)]
+# optimizers = [get_optimizer(Feds[client_id]) for client_id in range(args.num_clients)]
 
 
 criteria = torch.nn.CrossEntropyLoss()
@@ -149,39 +149,43 @@ results = defaultdict(list)
 
 first_name = args.data_name[0]
 net = get_feature_extractor(args.ft, input_size=args.input_size, embedding_dim=num_classes[first_name])
-print("start training time:", ctime(time()))
 if cuda:
     print('Cuda is available and used!!!')
     net = net.cuda()
+optimizer = get_optimizer(net)
+print("start training time:", ctime(time()))
+
 
 for epoch in range(10):
-    for client_id in range(clients.n_clients):
-        train_loss, val_loss = 0.0, 0.0
-        for i, data in enumerate(clients.train_loaders[0], 0):
-            inputs, labels = data
+    train_loss, val_loss = 0.0, 0.0
+    for i, data in enumerate(clients.train_loaders[0], 0):
+        inputs, labels = data
+        if cuda:
+            inputs, labels = inputs.cuda(), labels.cuda()
+        optimizer.zero_grad()
+        outputs = net(inputs)
+        loss = criteria(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss = loss.item()
+        train_loss += running_loss
+        print(f'[{epoch + 1}, {i + 1}] loss: {running_loss:.4f}')
+    train_loss = train_loss / len(clients.train_loaders[0])
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data in clients.val_loaders[0]:
+            images, labels = data
             if cuda:
-                inputs, labels = inputs.cuda, labels.cuda()
-            optimizers[client_id].zero_grad()
-            outputs = Feds[client_id](inputs)
+                images, labels = images.cuda(), labels.cuda()
+            outputs = net(images)
             loss = criteria(outputs, labels)
-            loss.backward()
-            optimizers[client_id].step()
-            running_loss = loss.item()
-            train_loss += running_loss
-            print(f'[{epoch + 1}, {i + 1}] loss: {running_loss:.4f}')
-        train_loss = train_loss / len(clients.train_loaders[client_id])
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for data in clients.val_loaders[client_id]:
-                data = tuple(t.to(device) for t in data)
-                images, labels = data
-                outputs = Feds[client_id](images)
-                loss = criteria(outputs, labels)
-                val_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-        val_loss = val_loss / len(clients.val_loaders[client_id])
-        print(f'{epoch + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}, Acc: {(correct/total)}')
+            val_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    val_loss = val_loss / len(clients.val_loaders[0])
+    print(f'{epoch + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}, Acc: {(correct/total)}')
+
+print('Finished Training')
 
