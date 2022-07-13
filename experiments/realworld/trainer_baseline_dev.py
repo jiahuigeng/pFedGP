@@ -87,9 +87,10 @@ args = parser.parse_args()
 
 set_logger()
 set_seed(args.seed)
+cuda = torch.cuda.is_available()
+# device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
+# print("device:", device)
 
-device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-print("device:", device)
 # num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
 # if args.data_name in ("cifar10", "cinic10"):
 #     num_classes = 10
@@ -164,8 +165,9 @@ def eval_model(global_model, Feds, clients, split):
 
 
         for batch_count, batch in enumerate(curr_data):
-            # print(batch_count)
-            img, label = tuple(t.to(device) for t in batch)
+            img, label = batch
+            if cuda:
+                img, label = img.cuda(), label.cuda()
 
             pred = Feds[client_id](img)
             running_loss += criteria(pred, label).item()
@@ -208,7 +210,7 @@ clients = RealClients(args.data_name, args.data_path, args.num_clients,
 Feds = []
 for data in args.data_name:
     local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
-    local_model = local_model.to(device)
+    local_model = local_model.cuda()
     Feds.append(local_model)
 
 
@@ -256,135 +258,135 @@ print("start training time:", ctime(time()))
 #     print('Cuda is available and used!!!')
 #     net = net.cuda()
 
-for epoch in range(10):
-    for client_id in range(clients.n_clients):
-        train_loss, val_loss = 0.0, 0.0
-        for i, data in enumerate(clients.train_loaders[0], 0):
-            data = tuple(t.to(device) for t in data)
-            inputs, labels = data
-
-            optimizers[client_id].zero_grad()
-            outputs = Feds[client_id](inputs)
-            loss = criteria(outputs, labels)
-            loss.backward()
-            optimizers[client_id].step()
-            running_loss = loss.item()
-            train_loss += running_loss
-            print(f'[{epoch + 1}, {i + 1}] loss: {running_loss:.4f}')
-        train_loss = train_loss / len(clients.train_loaders[client_id])
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for data in clients.val_loaders[client_id]:
-                data = tuple(t.to(device) for t in data)
-                images, labels = data
-                outputs = Feds[client_id](images)
-                loss = criteria(outputs, labels)
-                val_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-        val_loss = val_loss / len(clients.val_loaders[client_id])
-        print(f'{epoch + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}, Acc: {(correct/total)}')
+# for epoch in range(10):
+#     for client_id in range(clients.n_clients):
+#         train_loss, val_loss = 0.0, 0.0
+#         for i, data in enumerate(clients.train_loaders[0], 0):
+#             inputs, labels = data
+#             if cuda:
+#                 inputs, labels = inputs.cuda, labels.cuda()
+#             optimizers[client_id].zero_grad()
+#             outputs = Feds[client_id](inputs)
+#             loss = criteria(outputs, labels)
+#             loss.backward()
+#             optimizers[client_id].step()
+#             running_loss = loss.item()
+#             train_loss += running_loss
+#             print(f'[{epoch + 1}, {i + 1}] loss: {running_loss:.4f}')
+#         train_loss = train_loss / len(clients.train_loaders[client_id])
+#         correct = 0
+#         total = 0
+#         with torch.no_grad():
+#             for data in clients.val_loaders[client_id]:
+#                 data = tuple(t.to(device) for t in data)
+#                 images, labels = data
+#                 outputs = Feds[client_id](images)
+#                 loss = criteria(outputs, labels)
+#                 val_loss += loss.item()
+#                 _, predicted = torch.max(outputs.data, 1)
+#                 total += labels.size(0)
+#                 correct += (predicted == labels).sum().item()
+#         val_loss = val_loss / len(clients.val_loaders[client_id])
+#         print(f'{epoch + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}, Acc: {(correct/total)}')
 
 
 # params = OrderedDict()
 # for n in global_net.state_dict().keys():
 #     params[n] = torch.zeros_like(global_net.state_dict()[n].data)
 
-# for step in step_iter:
-#     # print tree stats every 100 epochs
-#     to_print = True if step % 100 == 0 else False
+for step in step_iter:
+    # print tree stats every 100 epochs
+    to_print = True if step % 100 == 0 else False
+
+    # select several clients
+    client_ids = np.random.choice(range(args.num_clients), size=args.num_client_agg, replace=False)
+
+    # initialize global model params
+
+
+    # iterate over each client
+    train_avg_loss = 0
+    num_samples = 0
+
+    for j, client_id in enumerate(client_ids):
+        # curr_global_net = copy.deepcopy(net)
+        # curr_global_net.train()
+        # optimizer = get_optimizer(curr_global_net)
+
+        Feds[client_id].train()
+
+        for k, batch in enumerate(clients.train_loaders[client_id]):
+            img, label = batch
+            if cuda:
+                img, label = img.cuda(), label.cuda()
+            num_samples += label.size(0)
+            optimizers[client_id].zero_grad()
+            loss = criteria(Feds[client_id](img), label)
+
+            train_avg_loss += loss
+
+
+            # propagate loss
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(Feds[client_id].parameters(), 50)
+            optimizers[client_id].step()
+
+            if k % 2 == 1:
+                logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")
+                train_avg_loss =0
+                num_samples = 0
+                # val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
+                # val_avg_loss, val_avg_acc = calc_metrics(val_results)
+                # logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+
+
+        eval_model(None, Feds, clients, split="val")
+
+        for n in Feds[client_id].state_dict().keys():
+            params[n] += Feds[client_id].state_dict()[n].data
+
+#     # average parameters
+    for n, p in params.items():
+        params[n] = p / args.num_client_agg
+
+#     # update new parameters
+    global_net.load_state_dict(params)
 #
-#     # select several clients
-#     client_ids = np.random.choice(range(args.num_clients), size=args.num_client_agg, replace=False)
-#
-#     # initialize global model params
-#
-#
-#     # iterate over each client
-#     train_avg_loss = 0
-#     num_samples = 0
-#
-#     for j, client_id in enumerate(client_ids):
-#         # curr_global_net = copy.deepcopy(net)
-#         # curr_global_net.train()
-#         # optimizer = get_optimizer(curr_global_net)
-#
-#         Feds[client_id].train()
-#
-#         for k, batch in enumerate(clients.train_loaders[client_id]):
-#
-#             batch = (t.to(device) for t in batch)
-#             img, label = batch
-#             num_samples += label.size(0)
-#             optimizers[client_id].zero_grad()
-#             loss = criteria(Feds[client_id](img), label)
-#
-#             train_avg_loss += loss
-#
-#
-#             # propagate loss
-#             loss.backward()
-#             torch.nn.utils.clip_grad_norm_(Feds[client_id].parameters(), 50)
-#             optimizers[client_id].step()
-#
-#             if k % 2 == 1:
-#                 logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")
-#                 train_avg_loss =0
-#                 num_samples = 0
-#                 # val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
-#                 # val_avg_loss, val_avg_acc = calc_metrics(val_results)
-#                 # logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
-#
-#
-#         eval_model(None, Feds, clients, split="val")
-#
-#         for n in Feds[client_id].state_dict().keys():
-#             params[n] += Feds[client_id].state_dict()[n].data
-#
-# #     # average parameters
-#     for n, p in params.items():
-#         params[n] = p / args.num_client_agg
-#
-# #     # update new parameters
-#     global_net.load_state_dict(params)
-# #
-#     if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-#         val_results, labels_vs_preds_val = eval_model(global_net, Feds, clients, split="val")
-#         val_avg_loss, val_avg_acc = calc_metrics(val_results)
-#         logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
-#
-#         if best_acc < val_avg_acc:
-#             best_val_loss = val_avg_loss
-#             best_acc = val_avg_acc
-#             best_step = step
-#             best_labels_vs_preds_val = labels_vs_preds_val
-#             best_model = copy.deepcopy(global_net)
-#
-#         results['val_avg_loss'].append(val_avg_loss)
-#         results['val_avg_acc'].append(val_avg_acc)
-#         results['best_step'].append(best_step)
-#         results['best_val_acc'].append(best_acc)
-#
-# print("end training time:", ctime(time()))
-# net = best_model
-#
-# test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
-# avg_test_loss, avg_test_acc = calc_metrics(test_results)
-#
-# logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
-# logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
-#
-# # best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
-# # logging.info(f"best calibration temp: {best_temp}")
-# # print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
-# # print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
-#
-# results['best_step'].append(best_step)
-# results['best_val_acc'].append(best_acc)
-# results['test_loss'].append(avg_test_loss)
-# results['test_acc'].append(avg_test_acc)
-#
-# with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
-#     json.dump(results, file, indent=4)
+    if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
+        val_results, labels_vs_preds_val = eval_model(global_net, Feds, clients, split="val")
+        val_avg_loss, val_avg_acc = calc_metrics(val_results)
+        logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+
+        if best_acc < val_avg_acc:
+            best_val_loss = val_avg_loss
+            best_acc = val_avg_acc
+            best_step = step
+            best_labels_vs_preds_val = labels_vs_preds_val
+            best_model = copy.deepcopy(global_net)
+
+        results['val_avg_loss'].append(val_avg_loss)
+        results['val_avg_acc'].append(val_avg_acc)
+        results['best_step'].append(best_step)
+        results['best_val_acc'].append(best_acc)
+
+print("end training time:", ctime(time()))
+net = best_model
+
+test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
+avg_test_loss, avg_test_acc = calc_metrics(test_results)
+
+logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
+logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
+
+# best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
+# logging.info(f"best calibration temp: {best_temp}")
+# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
+# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
+
+results['best_step'].append(best_step)
+results['best_val_acc'].append(best_acc)
+results['test_loss'].append(avg_test_loss)
+results['test_acc'].append(avg_test_acc)
+
+with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
+    json.dump(results, file, indent=4)
