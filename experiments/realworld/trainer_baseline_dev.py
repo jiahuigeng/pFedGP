@@ -64,9 +64,9 @@ def fix_all_seeds(seed):
 
 fix_all_seeds(2021)
 
-def get_optimizer(network):
-    return torch.optim.SGD(network.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.9) \
-        if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
+# def get_optimizer(network):
+#     return torch.optim.SGD(network.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.9) \
+#         if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
 
 
 # def broadcast(global_model, Feds):
@@ -87,8 +87,8 @@ for data in args.data_name:
     Feds.append(local_model)
 
 criterion = nn.CrossEntropyLoss()
-# optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-optimizers = [get_optimizer(net) for net in Feds]
+optimizers = [optim.SGD(net.parameters(), lr=0.001, momentum=0.9) for net in Feds]
+# optimizers = [get_optimizer(net) for net in Feds]
 cuda = torch.cuda.is_available()
 
 if cuda:
