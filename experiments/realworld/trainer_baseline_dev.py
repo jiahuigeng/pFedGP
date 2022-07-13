@@ -136,6 +136,10 @@ args.out_dir = (Path(args.save_path) / exp_name).as_posix()
 out_dir = save_experiment(args, None, return_out_dir=True, save_results=False)
 logging.info(out_dir)
 
+def get_optimizer(network):
+    return torch.optim.SGD(network.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.9) \
+        if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
+
 @torch.no_grad()
 def eval_model(global_model, Feds, clients, split):
     results = defaultdict(lambda: defaultdict(list))
@@ -195,15 +199,6 @@ def eval_model(global_model, Feds, clients, split):
 # assert len(args.data_name) == args.num_clients
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
-# NN
-
-# net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
-# if args.data_name in ['cifar10', 'cifar100', 'cinic10', 'minipanda']:
-#     net = get_feature_extractor(args.ft, input_size=32)
-# elif args.data_name in ['panda', 'sicapv2']:
-#     net = get_feature_extractor(args.ft, input_size=512)
-
-# num_channel = 3, num_class = 8, pretrained = True, model = 'resnet18'
 
 
 
@@ -214,6 +209,9 @@ for data in args.data_name:
     local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
     local_model = local_model.to(device)
     Feds.append(local_model)
+
+
+optimizers = [get_optimizer(Feds[client_id]) for client_id in range(args.num_clients)]
 # for data in args.data_name:
 #     cur_net = ResNet(num_channel=3, num_class=num_classes[data], pretrained=True, model=args.model)
 #     cur_net = cur_net.to(device)
@@ -227,9 +225,7 @@ for data in args.data_name:
     # GPs.append(pFedGPFullLearner(args, classes_per_client))  # GP instances
 
 
-def get_optimizer(network):
-    return torch.optim.SGD(network.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.9) \
-        if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
+
 
 
 criteria = torch.nn.CrossEntropyLoss()
@@ -305,14 +301,13 @@ for step in step_iter:
         # optimizer = get_optimizer(curr_global_net)
 
         Feds[client_id].train()
-        optimizer = get_optimizer(Feds[client_id])
 
         for k, batch in enumerate(clients.train_loaders[client_id]):
 
             batch = (t.to(device) for t in batch)
             img, label = batch
             num_samples += label.size(0)
-            optimizer.zero_grad()
+            optimizers[client_id].zero_grad()
             loss = criteria(Feds[client_id](img), label)
 
             train_avg_loss += loss
@@ -321,7 +316,7 @@ for step in step_iter:
             # propagate loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(Feds[client_id].parameters(), 50)
-            optimizer.step()
+            optimizers[client_id].step()
 
             if k % 2 == 1:
                 logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")

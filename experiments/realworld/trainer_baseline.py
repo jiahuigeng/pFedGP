@@ -12,7 +12,8 @@ import copy
 
 
 from experiments.realworld.clients import RealClients
-from experiments.backbone1 import ResNet
+# from experiments.backbone1 import ResNet
+from experiments.backbone import get_feature_extractor
 from utils import get_device, set_logger, set_seed, detach_to_numpy, save_experiment, \
     print_calibration, calibration_search, offset_client_classes, calc_metrics
 
@@ -210,9 +211,13 @@ clients = RealClients(args.data_name, args.data_path, args.num_clients,
 # Feds = torch.nn.ModuleList([])
 Feds = []
 for data in args.data_name:
-    cur_net = ResNet(num_channel=3, num_class=num_classes[data], pretrained=True, model=args.model)
-    cur_net = cur_net.to(device)
-    Feds.append(cur_net)
+    local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
+    local_model = local_model.to(device)
+    Feds.append(local_model)
+# for data in args.data_name:
+#     cur_net = ResNet(num_channel=3, num_class=num_classes[data], pretrained=True, model=args.model)
+#     cur_net = cur_net.to(device)
+#     Feds.append(cur_net)
 
 
 # for client_id in range(args.num_clients):
@@ -240,11 +245,14 @@ test_best_based_on_step, test_best_min_based_on_step = -1, -1
 test_best_max_based_on_step, test_best_std_based_on_step = -1, -1
 step_iter = trange(args.num_steps)
 
-if len(args.data_name) == 1:
-    global_net = ResNet(num_channel=3, num_class=num_classes[args.data_name[0]], pretrained=True, model=args.model)
-    best_model = copy.deepcopy(global_net)
-    best_labels_vs_preds_val = None
-    best_val_loss = -1
+# if len(args.data_name) == 1:
+    # global_net = ResNet(num_channel=3, num_class=num_classes[args.data_name[0]], pretrained=True, model=args.model)
+
+first_name = args.data_name[0]
+global_net = get_feature_extractor(args.ft, input_size=args.input_size, embedding_dim=num_classes[first_name])
+best_model = copy.deepcopy(global_net)
+best_labels_vs_preds_val = None
+best_val_loss = -1
 
 print("start training time:", ctime(time()))
 # for step in range(4):
