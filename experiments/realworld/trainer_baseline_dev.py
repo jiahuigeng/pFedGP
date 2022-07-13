@@ -95,23 +95,23 @@ fix_all_seeds(2021)
 #     return torch.optim.SGD(network.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.9) \
 #         if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
 
-def init_system():
-    Feds = []
-    for data in args.data_name:
-        local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data],
-                                            pretrained=False)
-        local_model = local_model.cuda()
-        Feds.append(local_model)
-
-    # global_state_dict = OrderedDict()
-    # for key in Feds[0].state_dict().keys():
-    #     if 'bn' not in key and 'fc' not in key:
-    #         global_state_dict[key] = Feds[0].state_dict()[key].data
-    #
-    # for key in global_state_dict:
-    #     for local_model in Feds:
-    #         local_model.state_dict()[key].data = global_state_dict[key]
-    return Feds
+# def init_system():
+#     Feds = []
+#     for data in args.data_name:
+#         local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data],
+#                                             pretrained=False)
+#         local_model = local_model.cuda()
+#         Feds.append(local_model)
+#
+#     # global_state_dict = OrderedDict()
+#     # for key in Feds[0].state_dict().keys():
+#     #     if 'bn' not in key and 'fc' not in key:
+#     #         global_state_dict[key] = Feds[0].state_dict()[key].data
+#     #
+#     # for key in global_state_dict:
+#     #     for local_model in Feds:
+#     #         local_model.state_dict()[key].data = global_state_dict[key]
+#     return Feds
 
 
 def aggregate_broadcast(Feds):
@@ -179,7 +179,14 @@ def eval_model(global_model, Feds, clients, split):
     return results, labels_vs_preds
 
 
-Feds = init_system()
+# Feds = init_system()
+Feds = []
+    for data in args.data_name:
+        local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data],
+                                            pretrained=False)
+        local_model = local_model.cuda()
+        Feds.append(local_model)
+
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
 criterion = nn.CrossEntropyLoss()
