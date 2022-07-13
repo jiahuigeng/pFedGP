@@ -198,6 +198,7 @@ if cuda:
     # net = net.cuda()
     Feds = [client_model.cuda() for client_model in Feds]
 
+Feds = aggregate_broadcast(Feds)
 for epoch in range(args.num_steps):
     for client_id in range(clients.n_clients):
         train_loss, val_loss = 0.0, 0.0
