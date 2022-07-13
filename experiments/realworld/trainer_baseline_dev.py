@@ -74,7 +74,7 @@ parser.add_argument('--outputscale-increase', type=str, default='constant',
 #       General args        #
 #############################
 parser.add_argument('--color', type=str, default='darkblue', help='color for calibration plot')
-parser.add_argument("--gpus", type=str, default='0', help="gpu device ID")
+parser.add_argument("--gpus", type=str, default='1', help="gpu device ID")
 parser.add_argument("--exp-name", type=str, default='', help="suffix for exp name")
 parser.add_argument("--eval-every", type=int, default=25, help="eval every X selected steps")
 parser.add_argument("--save-path", type=str, default="./output/pFedGP", help="dir path for output file")
@@ -88,8 +88,8 @@ args = parser.parse_args()
 set_logger()
 set_seed(args.seed)
 cuda = torch.cuda.is_available()
-# device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-# print("device:", device)
+device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
+print("device:", device)
 
 # num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
 # if args.data_name in ("cifar10", "cinic10"):
@@ -166,8 +166,9 @@ def eval_model(global_model, Feds, clients, split):
 
         for batch_count, batch in enumerate(curr_data):
             img, label = batch
+
             if cuda:
-                img, label = img.cuda(), label.cuda()
+                img, label = img.to(device), label.to(device)
 
             pred = Feds[client_id](img)
             running_loss += criteria(pred, label).item()
@@ -210,7 +211,7 @@ clients = RealClients(args.data_name, args.data_path, args.num_clients,
 Feds = []
 for data in args.data_name:
     local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
-    local_model = local_model.cuda()
+    local_model = local_model.to(device)
     Feds.append(local_model)
 
 
@@ -318,7 +319,7 @@ for step in step_iter:
         for k, batch in enumerate(clients.train_loaders[client_id]):
             img, label = batch
             if cuda:
-                img, label = img.cuda(), label.cuda()
+                img, label = img.to(device), label.to(device)
             num_samples += label.size(0)
             optimizers[client_id].zero_grad()
             loss = criteria(Feds[client_id](img), label)
