@@ -26,6 +26,8 @@ from torch.utils.data import Dataset, DataLoader
 parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 
 parser.add_argument('-n', '--data-name', default=['sicapv2'], nargs='+')
+parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
+
 parser.add_argument("--ft", '-ft', default='cnn',
                     choices=['cnn', 'resnet18', 'resnet50', 'efficientnetb3', 'efficientnetb5'])
 parser.add_argument("--num-steps", type=int, default=1000)
