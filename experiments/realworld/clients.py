@@ -33,9 +33,9 @@ class RealClients:
                 input_size=self.input_size,
                 mini=self.mini
             )
-            self.train_loaders.append(DataLoader(train_set, batch_size=self.batch_size))
-            self.val_loaders.append(DataLoader(val_set, batch_size=self.batch_size))
-            self.test_loaders.append(DataLoader(test_set, batch_size=self.batch_size))
+            self.train_loaders.append(DataLoader(train_set, batch_size=self.batch_size, shuffle=True))
+            self.val_loaders.append(DataLoader(val_set, batch_size=self.batch_size, shuffle=True))
+            self.test_loaders.append(DataLoader(test_set, batch_size=self.batch_size, shuffle=True))
 
     def __len__(self):
         return self.n_clients

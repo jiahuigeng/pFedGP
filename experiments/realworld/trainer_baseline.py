@@ -180,7 +180,7 @@ def eval_model(global_model, Feds, clients, split):
 # assert len(args.data_name) == args.num_clients
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
-# NN
+
 
 # net = CNNTarget(n_kernels=args.n_kernels, embedding_dim=args.embed_dim)
 # if args.data_name in ['cifar10', 'cifar100', 'cinic10', 'minipanda']:
