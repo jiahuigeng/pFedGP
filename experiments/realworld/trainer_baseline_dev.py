@@ -128,20 +128,7 @@ def aggregate_broadcast(Feds):
     return Feds
 
 
-clients = RealClients(args.data_name, args.data_path, args.num_clients,
-                      batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
 
-
-
-criterion = nn.CrossEntropyLoss()
-optimizers = [optim.SGD(net.parameters(), lr=0.001, momentum=0.9) for net in Feds]
-
-cuda = torch.cuda.is_available()
-
-if cuda:
-    print('Cuda is available and used!!!')
-    # net = net.cuda()
-    Feds = [client_model.cuda() for client_model in Feds]
 
 @torch.no_grad()
 def eval_model(global_model, Feds, clients, split):
@@ -193,6 +180,17 @@ def eval_model(global_model, Feds, clients, split):
 
 
 Feds = init_system()
+clients = RealClients(args.data_name, args.data_path, args.num_clients,
+                      batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
+criterion = nn.CrossEntropyLoss()
+optimizers = [optim.SGD(net.parameters(), lr=0.001, momentum=0.9) for net in Feds]
+cuda = torch.cuda.is_available()
+
+if cuda:
+    print('Cuda is available and used!!!')
+    # net = net.cuda()
+    Feds = [client_model.cuda() for client_model in Feds]
+
 for epoch in range(args.num_steps):
     for client_id in range(clients.n_clients):
         train_loss, val_loss = 0.0, 0.0
