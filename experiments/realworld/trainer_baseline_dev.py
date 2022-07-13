@@ -30,6 +30,8 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 
 parser.add_argument('-n', '--data-name', default=['sicapv2'], nargs='+')
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
+parser.add_argument("--save-path", type=str, default="./output/pFedGP", help="dir path for output file")
+
 parser.add_argument("--optimizer", type=str, default='sgd', choices=['adam', 'sgd'], help="learning rate")
 parser.add_argument('--objective', type=str, default='predictive_likelihood',
                     choices=['predictive_likelihood', 'marginal_likelihood'])
@@ -37,6 +39,7 @@ parser.add_argument("--exp-name", type=str, default='', help="suffix for exp nam
 
 parser.add_argument('--predict-ratio', type=float, default=0.5,
                     help='ratio of samples to make predictions for when using predictive_likelihood objective')
+
 parser.add_argument("--lr", type=float, default=5e-2, help="learning rate")
 parser.add_argument("--wd", type=float, default=1e-3, help="weight decay")
 parser.add_argument("--ft", '-ft', default="resnet18",
