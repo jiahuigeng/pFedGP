@@ -49,6 +49,8 @@ num_classes = {
     'karolinska': 2
 }
 
+args.num_clients = len(args.data_name)
+
 def fix_all_seeds(seed):
     np.random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
