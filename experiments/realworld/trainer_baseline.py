@@ -81,8 +81,8 @@ args = parser.parse_args()
 set_logger()
 set_seed(args.seed)
 
-device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-
+# device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
+cuda = torch.cuda.is_available()
 num_classes = {
     'cifar10': 10,
     'cifar100':100,
@@ -143,8 +143,10 @@ def eval_model(global_model, Feds, clients, split):
 
         for batch_count, batch in enumerate(curr_data):
             # print(batch_count)
-            img, label = tuple(t.to(device) for t in batch)
-
+            # img, label = tuple(t.to(device) for t in batch)
+            img, label = batch
+            if cuda:
+                img, label =img.cuda(), label.cuda()
             pred = Feds[client_id](img)
             running_loss += criteria(pred, label).item()
             running_correct += pred.argmax(1).eq(label).sum().item()
@@ -195,7 +197,7 @@ clients = RealClients(args.data_name, args.data_path, args.num_clients,
 Feds = []
 for data in args.data_name:
     local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
-    local_model = local_model.to(device)
+    local_model = local_model.cuda()
     Feds.append(local_model)
 # for data in args.data_name:
 #     cur_net = ResNet(num_channel=3, num_class=num_classes[data], pretrained=True, model=args.model)
@@ -291,9 +293,9 @@ for step in step_iter:
         optimizer = get_optimizer(Feds[client_id])
 
         for k, batch in enumerate(clients.train_loaders[client_id]):
-
-            batch = (t.to(device) for t in batch)
             img, label = batch
+            if cuda:
+                img, label = img.cuda(), label.cuda()
             num_samples += label.size(0)
             optimizer.zero_grad()
             loss = criteria(Feds[client_id](img), label)
