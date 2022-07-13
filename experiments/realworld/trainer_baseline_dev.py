@@ -35,7 +35,7 @@ parser.add_argument("--batch-size", type=int, default=512)
 args = parser.parse_args()
 
 set_logger()
-set_seed(args.seed)
+# set_seed(args.seed)
 
 
 num_classes = {
