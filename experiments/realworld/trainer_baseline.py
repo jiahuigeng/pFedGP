@@ -156,9 +156,6 @@ def eval_model(global_model, Feds, clients, split):
             preds.append(pred)
 
 
-        # erase tree (no need to save it)
-        # GPs[client_id].tree = None
-
         results[client_id]['loss'] = running_loss / (batch_count + 1)
         results[client_id]['correct'] = running_correct
         results[client_id]['total'] = running_samples
