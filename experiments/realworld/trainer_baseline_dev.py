@@ -89,6 +89,7 @@ set_logger()
 set_seed(args.seed)
 
 device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
+print("device:", device)
 # num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
 # if args.data_name in ("cifar10", "cinic10"):
 #     num_classes = 10

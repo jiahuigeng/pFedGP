@@ -21,13 +21,6 @@ from experiments.calibrate import ECELoss
 
 parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 
-#############################
-#       Dataset Args        #
-#############################
-# parser.add_argument(
-#     "--data-name", type=str, default="cifar10",
-#     choices=['cifar10', 'cifar100', 'cinic10', 'panda', 'sicapv2', "minipanda"],
-# )
 parser.add_argument('-n', '--data-name', default=['sicapv2', 'radboud', 'karolinska'], nargs='+')
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
 # parser.add_argument("--num-clients", type=int, default=50, help="number of simulated clients")
@@ -89,16 +82,6 @@ set_logger()
 set_seed(args.seed)
 
 device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
-# num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
-# if args.data_name in ("cifar10", "cinic10"):
-#     num_classes = 10
-#     classes_per_client = 2
-# elif args.data_name in ("panda", "minipanda"):
-#     num_classes = 5
-#     classes_per_client = 5
-# elif args.data_name in ("cifar100"):
-#     num_classes = 100
-#     classes_per_client = 10
 
 num_classes = {
     'cifar10': 10,
