@@ -322,9 +322,9 @@ for step in step_iter:
                 logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")
                 train_avg_loss =0
                 num_samples = 0
-                val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
-                val_avg_loss, val_avg_acc = calc_metrics(val_results)
-                logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
+                # val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
+                # val_avg_loss, val_avg_acc = calc_metrics(val_results)
+                # logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
 
 
         eval_model(None, Feds, clients, split="val")
