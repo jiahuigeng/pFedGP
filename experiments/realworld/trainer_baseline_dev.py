@@ -74,7 +74,7 @@ parser.add_argument('--outputscale-increase', type=str, default='constant',
 #       General args        #
 #############################
 parser.add_argument('--color', type=str, default='darkblue', help='color for calibration plot')
-parser.add_argument("--gpus", type=str, default='1', help="gpu device ID")
+parser.add_argument("--gpus", type=str, default='0', help="gpu device ID")
 parser.add_argument("--exp-name", type=str, default='', help="suffix for exp name")
 parser.add_argument("--eval-every", type=int, default=25, help="eval every X selected steps")
 parser.add_argument("--save-path", type=str, default="./output/pFedGP", help="dir path for output file")
