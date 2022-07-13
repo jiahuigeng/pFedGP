@@ -31,6 +31,10 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 parser.add_argument('-n', '--data-name', default=['sicapv2'], nargs='+')
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
 parser.add_argument("--optimizer", type=str, default='sgd', choices=['adam', 'sgd'], help="learning rate")
+parser.add_argument('--objective', type=str, default='predictive_likelihood',
+                    choices=['predictive_likelihood', 'marginal_likelihood'])
+parser.add_argument('--predict-ratio', type=float, default=0.5,
+                    help='ratio of samples to make predictions for when using predictive_likelihood objective')
 parser.add_argument("--lr", type=float, default=5e-2, help="learning rate")
 parser.add_argument("--wd", type=float, default=1e-3, help="weight decay")
 parser.add_argument("--ft", '-ft', default="resnet18",
@@ -46,7 +50,7 @@ set_logger()
 
 args.num_clients = len(args.data_name)
 exp_name = f'pFedGP-Full_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
-           f'lr_{args.lr}_num_steps_{args.num_steps}_inner_steps_{args.inner_steps}_' \
+           f'lr_{args.lr}_num_steps_{args.num_steps}' \
            f'_objective_{args.objective}_predict_ratio_{args.predict_ratio}'
 
 if args.exp_name != '':
