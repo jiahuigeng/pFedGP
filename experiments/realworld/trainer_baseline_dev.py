@@ -91,16 +91,6 @@ cuda = torch.cuda.is_available()
 device = get_device(cuda=int(args.gpus) >= 0, gpus=args.gpus)
 print("device:", device)
 
-# num_classes = 10 if args.data_name in ('cifar10', 'cinic10') else 100
-# if args.data_name in ("cifar10", "cinic10"):
-#     num_classes = 10
-#     classes_per_client = 2
-# elif args.data_name in ("panda", "minipanda"):
-#     num_classes = 5
-#     classes_per_client = 5
-# elif args.data_name in ("cifar100"):
-#     num_classes = 100
-#     classes_per_client = 10
 
 num_classes = {
     'cifar10': 10,
@@ -120,10 +110,6 @@ classes_per_client = {
     'karolinska': 2
 }
 
-# classes_per_client = 2 if args.data_name == 'cifar10' else 10 if args.data_name == 'cifar100' else 4
-# if args.classes_per_client:
-#     classes_per_client = args.classes_per_client
-
 args.num_clients = len(args.data_name)
 
 exp_name = f'pFedGP-Full_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
@@ -142,72 +128,11 @@ def get_optimizer(network):
     return torch.optim.SGD(network.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.9) \
         if args.optimizer == 'sgd' else torch.optim.Adam(network.parameters(), lr=args.lr, weight_decay=args.wd)
 
-@torch.no_grad()
-def eval_model(global_model, Feds, clients, split):
-    results = defaultdict(lambda: defaultdict(list))
-    targets = []
-    preds = []
 
-    if global_model:
-        global_model.eval()
-
-    for client_id in range(args.num_clients):
-        is_first_iter = True
-        running_loss, running_correct, running_samples = 0., 0., 0.
-        if split == 'test':
-            curr_data = clients.test_loaders[client_id]
-        elif split == 'val':
-            curr_data = clients.val_loaders[client_id]
-        else:
-            curr_data = clients.train_loaders[client_id]
-
-        Feds[client_id].eval()
-
-
-        for batch_count, batch in enumerate(curr_data):
-            img, label = batch
-
-            if cuda:
-                img, label = img.to(device), label.to(device)
-
-            pred = Feds[client_id](img)
-            running_loss += criteria(pred, label).item()
-            running_correct += pred.argmax(1).eq(label).sum().item()
-            running_samples += len(label)
-
-            targets.append(label)
-            preds.append(pred)
-
-
-        # erase tree (no need to save it)
-        # GPs[client_id].tree = None
-
-        results[client_id]['loss'] = running_loss / (batch_count + 1)
-        results[client_id]['correct'] = running_correct
-        results[client_id]['total'] = running_samples
-
-    target = detach_to_numpy(torch.cat(targets, dim=0))
-    full_pred = detach_to_numpy(torch.cat(preds, dim=0))
-    labels_vs_preds = np.concatenate((target.reshape(-1, 1), full_pred), axis=1)
-
-    return results, labels_vs_preds
-
-
-###############################
-# init net and GP #
-###############################
-# clients = BaseClients(args.data_name, args.data_path, args.num_clients,
-#                       classes_per_client=classes_per_client,
-#                       batch_size=args.batch_size, input_size=args.input_size)
-
-# assert len(args.data_name) == args.num_clients
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
 
 
-
-# GPs = torch.nn.ModuleList([])
-# Feds = torch.nn.ModuleList([])
 Feds = []
 for data in args.data_name:
     local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data], pretrained=False)
@@ -216,178 +141,47 @@ for data in args.data_name:
 
 
 optimizers = [get_optimizer(Feds[client_id]) for client_id in range(args.num_clients)]
-# for data in args.data_name:
-#     cur_net = ResNet(num_channel=3, num_class=num_classes[data], pretrained=True, model=args.model)
-#     cur_net = cur_net.to(device)
-#     Feds.append(cur_net)
-
-
-# for client_id in range(args.num_clients):
-#     cur_net = ResNet(num_channel=3, num_class=num_classes[], pretrained=True, model=args.model)
-#     cur_net = cur_net.to(device)
-#     Feds.append(cur_net)
-    # GPs.append(pFedGPFullLearner(args, classes_per_client))  # GP instances
-
-
-
 
 
 criteria = torch.nn.CrossEntropyLoss()
 results = defaultdict(list)
 
-################
-# init metrics #
-################
-last_eval = -1
-best_step = -1
-best_acc = -1
-test_best_based_on_step, test_best_min_based_on_step = -1, -1
-test_best_max_based_on_step, test_best_std_based_on_step = -1, -1
-step_iter = trange(args.num_steps)
-
-# if len(args.data_name) == 1:
-    # global_net = ResNet(num_channel=3, num_class=num_classes[args.data_name[0]], pretrained=True, model=args.model)
 
 first_name = args.data_name[0]
-global_net = get_feature_extractor(args.ft, input_size=args.input_size, embedding_dim=num_classes[first_name])
-best_model = copy.deepcopy(global_net)
-best_labels_vs_preds_val = None
-best_val_loss = -1
-
+net = get_feature_extractor(args.ft, input_size=args.input_size, embedding_dim=num_classes[first_name])
 print("start training time:", ctime(time()))
-# if cuda:
-#     print('Cuda is available and used!!!')
-#     net = net.cuda()
+if cuda:
+    print('Cuda is available and used!!!')
+    net = net.cuda()
 
-# for epoch in range(10):
-#     for client_id in range(clients.n_clients):
-#         train_loss, val_loss = 0.0, 0.0
-#         for i, data in enumerate(clients.train_loaders[0], 0):
-#             inputs, labels = data
-#             if cuda:
-#                 inputs, labels = inputs.cuda, labels.cuda()
-#             optimizers[client_id].zero_grad()
-#             outputs = Feds[client_id](inputs)
-#             loss = criteria(outputs, labels)
-#             loss.backward()
-#             optimizers[client_id].step()
-#             running_loss = loss.item()
-#             train_loss += running_loss
-#             print(f'[{epoch + 1}, {i + 1}] loss: {running_loss:.4f}')
-#         train_loss = train_loss / len(clients.train_loaders[client_id])
-#         correct = 0
-#         total = 0
-#         with torch.no_grad():
-#             for data in clients.val_loaders[client_id]:
-#                 data = tuple(t.to(device) for t in data)
-#                 images, labels = data
-#                 outputs = Feds[client_id](images)
-#                 loss = criteria(outputs, labels)
-#                 val_loss += loss.item()
-#                 _, predicted = torch.max(outputs.data, 1)
-#                 total += labels.size(0)
-#                 correct += (predicted == labels).sum().item()
-#         val_loss = val_loss / len(clients.val_loaders[client_id])
-#         print(f'{epoch + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}, Acc: {(correct/total)}')
-
-
-# params = OrderedDict()
-# for n in global_net.state_dict().keys():
-#     params[n] = torch.zeros_like(global_net.state_dict()[n].data)
-
-for step in step_iter:
-    # print tree stats every 100 epochs
-    to_print = True if step % 100 == 0 else False
-
-    # select several clients
-    client_ids = np.random.choice(range(args.num_clients), size=args.num_client_agg, replace=False)
-
-    # initialize global model params
-
-
-    # iterate over each client
-    train_avg_loss = 0
-    num_samples = 0
-
-    for j, client_id in enumerate(client_ids):
-        # curr_global_net = copy.deepcopy(net)
-        # curr_global_net.train()
-        # optimizer = get_optimizer(curr_global_net)
-
-        Feds[client_id].train()
-
-        for k, batch in enumerate(clients.train_loaders[client_id]):
-            img, label = batch
+for epoch in range(10):
+    for client_id in range(clients.n_clients):
+        train_loss, val_loss = 0.0, 0.0
+        for i, data in enumerate(clients.train_loaders[0], 0):
+            inputs, labels = data
             if cuda:
-                img, label = img.to(device), label.to(device)
-            num_samples += label.size(0)
+                inputs, labels = inputs.cuda, labels.cuda()
             optimizers[client_id].zero_grad()
-            loss = criteria(Feds[client_id](img), label)
-
-            train_avg_loss += loss
-
-
-            # propagate loss
+            outputs = Feds[client_id](inputs)
+            loss = criteria(outputs, labels)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(Feds[client_id].parameters(), 50)
             optimizers[client_id].step()
+            running_loss = loss.item()
+            train_loss += running_loss
+            print(f'[{epoch + 1}, {i + 1}] loss: {running_loss:.4f}')
+        train_loss = train_loss / len(clients.train_loaders[client_id])
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data in clients.val_loaders[client_id]:
+                data = tuple(t.to(device) for t in data)
+                images, labels = data
+                outputs = Feds[client_id](images)
+                loss = criteria(outputs, labels)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        val_loss = val_loss / len(clients.val_loaders[client_id])
+        print(f'{epoch + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}, Acc: {(correct/total)}')
 
-            if k % 2 == 1:
-                logging.info(f"batch: {k}, training loss: {(train_avg_loss/num_samples+1):.4f}")
-                train_avg_loss =0
-                num_samples = 0
-                # val_results, labels_vs_preds_val = eval_model(Feds[client_id], Feds, clients, split="val")
-                # val_avg_loss, val_avg_acc = calc_metrics(val_results)
-                # logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
-
-
-        eval_model(None, Feds, clients, split="val")
-
-        for n in Feds[client_id].state_dict().keys():
-            params[n] += Feds[client_id].state_dict()[n].data
-
-#     # average parameters
-    for n, p in params.items():
-        params[n] = p / args.num_client_agg
-
-#     # update new parameters
-    global_net.load_state_dict(params)
-#
-    if (step + 1) % args.eval_every == 0 or (step + 1) == args.num_steps:
-        val_results, labels_vs_preds_val = eval_model(global_net, Feds, clients, split="val")
-        val_avg_loss, val_avg_acc = calc_metrics(val_results)
-        logging.info(f"Step: {step + 1}, AVG Loss: {val_avg_loss:.4f},  AVG Acc Val: {val_avg_acc:.4f}")
-
-        if best_acc < val_avg_acc:
-            best_val_loss = val_avg_loss
-            best_acc = val_avg_acc
-            best_step = step
-            best_labels_vs_preds_val = labels_vs_preds_val
-            best_model = copy.deepcopy(global_net)
-
-        results['val_avg_loss'].append(val_avg_loss)
-        results['val_avg_acc'].append(val_avg_acc)
-        results['best_step'].append(best_step)
-        results['best_val_acc'].append(best_acc)
-
-print("end training time:", ctime(time()))
-net = best_model
-
-test_results, labels_vs_preds_test = eval_model(net, Feds, clients, split="test")
-avg_test_loss, avg_test_acc = calc_metrics(test_results)
-
-logging.info(f"\nStep: {step + 1}, Best Val Loss: {best_val_loss:.4f}, Best Val Acc: {best_acc:.4f}")
-logging.info(f"\nStep: {step + 1}, Test Loss: {avg_test_loss:.4f}, Test Acc: {avg_test_acc:.4f}")
-
-# best_temp = calibration_search(ECE_module, out_dir, best_labels_vs_preds_val, args.color, 'calibration_val.png')
-# logging.info(f"best calibration temp: {best_temp}")
-# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_temp1.png', args.color, temp=1.0)
-# print_calibration(ECE_module, out_dir, labels_vs_preds_test, 'calibration_test_best.png', args.color, temp=best_temp)
-
-results['best_step'].append(best_step)
-results['best_val_acc'].append(best_acc)
-results['test_loss'].append(avg_test_loss)
-results['test_acc'].append(avg_test_acc)
-
-with open(str(out_dir / f"results_{args.inner_steps}_inner_steps_seed_{args.seed}.json"), "w") as file:
-    json.dump(results, file, indent=4)
