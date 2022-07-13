@@ -27,6 +27,7 @@ parser = argparse.ArgumentParser(description="Personalized Federated Learning")
 
 parser.add_argument('-n', '--data-name', default=['sicapv2'], nargs='+')
 parser.add_argument("--data-path", type=str, default="../datafolder", help="dir path for CIFAR datafolder")
+parser.add_argument("--optimizer", type=str, default='sgd', choices=['adam', 'sgd'], help="learning rate")
 
 parser.add_argument("--ft", '-ft', default="resnet18",
                     choices=['cnn', 'resnet18', 'resnet50', 'efficientnetb3', 'efficientnetb5'])
