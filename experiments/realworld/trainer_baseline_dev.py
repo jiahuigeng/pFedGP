@@ -259,7 +259,7 @@ for epoch in range(10):
     for client_id in range(clients.n_clients):
         train_loss, val_loss = 0.0, 0.0
         for i, data in enumerate(clients.train_loaders[0], 0):
-            data = data.to(device)
+            data = tuple(t.to(device) for t in data)
             inputs, labels = data
 
             optimizers[client_id].zero_grad()
@@ -275,7 +275,7 @@ for epoch in range(10):
         total = 0
         with torch.no_grad():
             for data in clients.val_loaders[client_id]:
-                data = data.to(device)
+                data = tuple(t.to(device) for t in data)
                 images, labels = data
                 outputs = Feds[client_id](images)
                 loss = criteria(outputs, labels)
