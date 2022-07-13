@@ -181,11 +181,11 @@ def eval_model(global_model, Feds, clients, split):
 
 # Feds = init_system()
 Feds = []
-    for data in args.data_name:
-        local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data],
-                                            pretrained=False)
-        local_model = local_model.cuda()
-        Feds.append(local_model)
+for data in args.data_name:
+    local_model = get_feature_extractor(ft=args.ft, input_size=args.input_size, embedding_dim=num_classes[data],
+                                        pretrained=False)
+    local_model = local_model.cuda()
+    Feds.append(local_model)
 
 clients = RealClients(args.data_name, args.data_path, args.num_clients,
                       batch_size=args.batch_size, input_size=args.input_size, mini=args.mini)
