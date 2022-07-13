@@ -44,6 +44,7 @@ args = parser.parse_args()
 
 set_logger()
 
+args.num_clients = len(args.data_name)
 exp_name = f'pFedGP-Full_{args.data_name}_num_clients_{args.num_clients}_seed_{args.seed}_' \
            f'lr_{args.lr}_num_steps_{args.num_steps}_inner_steps_{args.inner_steps}_' \
            f'_objective_{args.objective}_predict_ratio_{args.predict_ratio}'
@@ -68,7 +69,7 @@ num_classes = {
     'karolinska': 2
 }
 
-args.num_clients = len(args.data_name)
+
 
 def fix_all_seeds(seed):
     np.random.seed(seed)
